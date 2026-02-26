@@ -4,13 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Free Competitor FAQ Report — Intelligent Resources</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f5f7fa;
-      color: #1a1a2e;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f5f0;
+      color: #25282b;
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -21,83 +24,82 @@
     .card {
       background: #fff;
       border-radius: 16px;
-      box-shadow: 0 4px 32px rgba(0,0,0,0.10);
-      max-width: 560px;
+      box-shadow: 0 2px 24px rgba(37,40,43,0.08);
+      max-width: 540px;
       width: 100%;
       padding: 48px 40px;
     }
 
-    .badge {
-      display: inline-block;
-      background: #eef2ff;
-      color: #4f46e5;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      padding: 4px 12px;
-      border-radius: 999px;
-      margin-bottom: 20px;
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      background: #ff7433;
+      border-radius: 9px;
+      margin-bottom: 24px;
     }
 
     h1 {
-      font-size: 28px;
+      font-family: "Poppins", sans-serif;
+      font-size: 26px;
       font-weight: 700;
-      line-height: 1.25;
+      line-height: 1.3;
       margin-bottom: 12px;
-      color: #1a1a2e;
+      color: #25282b;
     }
-
-    h1 span { color: #4f46e5; }
 
     .subtitle {
       font-size: 15px;
-      color: #64748b;
-      line-height: 1.6;
-      margin-bottom: 32px;
+      color: #5a5f64;
+      line-height: 1.65;
+      margin-bottom: 28px;
     }
 
     .benefits {
+      background: #edffd6;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
       list-style: none;
-      margin-bottom: 32px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 9px;
     }
 
     .benefits li {
-      font-size: 14px;
-      color: #475569;
+      font-size: 13.5px;
+      color: #25282b;
       display: flex;
-      align-items: center;
-      gap: 8px;
+      align-items: flex-start;
+      gap: 9px;
+      line-height: 1.5;
     }
 
     .benefits li::before {
       content: "✓";
-      color: #4f46e5;
+      color: #ff7433;
       font-weight: 700;
       font-size: 13px;
+      margin-top: 1px;
       flex-shrink: 0;
     }
 
     .divider {
       border: none;
-      border-top: 1px solid #e2e8f0;
-      margin-bottom: 28px;
+      border-top: 1px solid #ebebeb;
+      margin-bottom: 24px;
     }
 
     label {
       display: block;
       font-size: 13px;
       font-weight: 600;
-      color: #374151;
+      color: #25282b;
       margin-bottom: 6px;
     }
 
     label .hint {
       font-weight: 400;
-      color: #94a3b8;
+      color: #9ca3af;
       font-size: 12px;
       margin-left: 4px;
     }
@@ -105,12 +107,12 @@
     input[type="email"],
     textarea {
       width: 100%;
-      border: 1.5px solid #e2e8f0;
+      border: 1.5px solid #e5e7eb;
       border-radius: 8px;
       padding: 10px 14px;
       font-size: 14px;
-      font-family: inherit;
-      color: #1a1a2e;
+      font-family: "Inter", sans-serif;
+      color: #25282b;
       background: #fafafa;
       transition: border-color 0.15s, box-shadow 0.15s;
       outline: none;
@@ -119,24 +121,25 @@
 
     input[type="email"]:focus,
     textarea:focus {
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(79,70,229,0.10);
+      border-color: #ff7433;
+      box-shadow: 0 0 0 3px rgba(255,116,51,0.12);
       background: #fff;
     }
 
-    textarea { min-height: 110px; }
+    textarea { min-height: 108px; }
 
-    .field { margin-bottom: 20px; }
+    .field { margin-bottom: 18px; }
 
     button[type="submit"] {
       width: 100%;
       padding: 13px;
-      background: #4f46e5;
+      background: #ff7433;
       color: #fff;
       border: none;
       border-radius: 8px;
       font-size: 15px;
       font-weight: 600;
+      font-family: "Inter", sans-serif;
       cursor: pointer;
       transition: background 0.15s, transform 0.1s;
       margin-top: 4px;
@@ -146,9 +149,9 @@
       gap: 8px;
     }
 
-    button[type="submit"]:hover { background: #4338ca; }
+    button[type="submit"]:hover { background: #e5611e; }
     button[type="submit"]:active { transform: scale(0.99); }
-    button[type="submit"]:disabled { background: #a5b4fc; cursor: not-allowed; }
+    button[type="submit"]:disabled { background: #f4a97a; cursor: not-allowed; }
 
     .spinner {
       width: 16px; height: 16px;
@@ -163,37 +166,39 @@
     .success {
       display: none;
       text-align: center;
-      padding: 32px 0 8px;
+      padding: 24px 0 8px;
     }
 
     .success-icon {
-      width: 56px; height: 56px;
-      background: #ecfdf5;
+      width: 60px; height: 60px;
+      background: #edffd6;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 16px;
-      font-size: 24px;
+      margin: 0 auto 20px;
+      font-size: 26px;
     }
 
     .success h2 {
+      font-family: "Poppins", sans-serif;
       font-size: 20px;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      color: #25282b;
     }
 
     .success p {
       font-size: 14px;
-      color: #64748b;
-      line-height: 1.6;
+      color: #5a5f64;
+      line-height: 1.7;
     }
 
     .error-msg {
       display: none;
-      background: #fef2f2;
+      background: #fff5f5;
       border: 1px solid #fecaca;
-      color: #dc2626;
+      color: #c0392b;
       font-size: 13px;
       padding: 10px 14px;
       border-radius: 8px;
@@ -202,9 +207,9 @@
 
     .privacy {
       font-size: 12px;
-      color: #94a3b8;
+      color: #9ca3af;
       text-align: center;
-      margin-top: 16px;
+      margin-top: 14px;
     }
   </style>
 </head>
@@ -213,17 +218,16 @@
 
     <!-- Form state -->
     <div id="form-view">
-      <div class="badge">Free Tool</div>
-      <h1>See what your <span>competitors</span> are being asked</h1>
+      <div class="logo-mark"></div>
+      <h1>What are your competitors actually being asked?</h1>
       <p class="subtitle">
-        Paste in your competitors' FAQ page URLs and we'll extract every
-        question and answer into a ready-to-use CSV — free, in minutes.
+        Paste in a few competitor FAQ page URLs and we'll pull out every question and answer into a clean CSV. No account needed, no strings attached.
       </p>
 
       <ul class="benefits">
-        <li>Discover gaps in your own content</li>
-        <li>Find blog post and FAQ ideas instantly</li>
-        <li>CSV lands in your inbox — no signup required</li>
+        <li>See what real customers are asking your competitors</li>
+        <li>Spot content gaps you can fill right away</li>
+        <li>Ready-to-use CSV sent straight to your inbox</li>
       </ul>
 
       <hr class="divider" />
@@ -232,7 +236,7 @@
         <div class="field">
           <label for="urls">
             Competitor FAQ URLs
-            <span class="hint">— one per line</span>
+            <span class="hint">one per line</span>
           </label>
           <textarea
             id="urls"
@@ -254,23 +258,23 @@
         </div>
 
         <button type="submit" id="submit-btn">
-          <span id="btn-text">Generate My FAQ Report</span>
+          <span id="btn-text">Send Me the Report</span>
           <span class="spinner" id="spinner"></span>
         </button>
 
         <div class="error-msg" id="error-msg"></div>
       </form>
 
-      <p class="privacy">No spam. We only use your email to send the report.</p>
+      <p class="privacy">No spam. Your email is only used to send you this report.</p>
     </div>
 
     <!-- Success state -->
     <div class="success" id="success-view">
       <div class="success-icon">📬</div>
-      <h2>Report on its way!</h2>
+      <h2>Got it, working on it now</h2>
       <p>
-        We're scraping your competitors' FAQ pages now.<br />
-        Check your inbox in a few minutes — the CSV will be there.
+        It usually takes a few minutes to pull the data together.<br />
+        We'll send the report straight to your inbox once it's ready.
       </p>
     </div>
 
@@ -297,7 +301,6 @@
       if (!urls) return showError("Please enter at least one URL.");
       if (!email || !email.includes("@")) return showError("Please enter a valid email address.");
 
-      // Normalise: join lines into comma-separated string
       const urlList = urls.split(/[\n,]+/).map(u => u.trim()).filter(u => u.startsWith("http")).join(",");
       if (!urlList) return showError("No valid URLs found. Make sure each URL starts with http.");
 
@@ -322,7 +325,7 @@
 
     function setLoading(on) {
       submitBtn.disabled = on;
-      btnText.textContent = on ? "Generating…" : "Generate My FAQ Report";
+      btnText.textContent = on ? "Generating..." : "Send Me the Report";
       spinner.style.display = on ? "block" : "none";
     }
 
