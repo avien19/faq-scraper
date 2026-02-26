@@ -1,0 +1,68 @@
+{
+  "llm": {
+    "provider": "anthropic",
+    "model": "claude-haiku-4-5-20251001"
+  },
+  "google_sheet": {
+    "spreadsheet_name": "Competitor FAQs",
+    "worksheet_name": "Sheet1"
+  },
+  "request_delay_seconds": 2,
+  "competitors": [
+    {
+      "name": "CloudCon",
+      "faq_urls": [],
+      "blog_urls": ["https://www.cloudcon.com/articles"]
+    },
+    {
+      "name": "Simpro",
+      "faq_urls": [
+        "https://helpguide.simprogroup.com/Content/Service-and-Enterprise/Customisation-FAQ.htm",
+        "https://helpguide.simprogroup.com/Content/simTRAC/simTRAC-FAQ.htm"
+      ],
+      "blog_urls": ["https://www.simprogroup.com/blog"]
+    },
+    {
+      "name": "Assignar",
+      "faq_urls": ["https://assignar.com/frequently-asked-questions/"],
+      "blog_urls": []
+    },
+    {
+      "name": "AroFlo",
+      "faq_urls": ["https://aroflo.com/resources/faq"],
+      "blog_urls": ["https://aroflo.com/blog"],
+      "force_browser": true
+    },
+    {
+      "name": "Procore",
+      "faq_urls": [],
+      "blog_urls": ["https://www.procore.com/en-au/blog"]
+    },
+    {
+      "name": "Tradify",
+      "faq_urls": ["https://help.tradifyhq.com/hc/en-us/sections/360004878354-General-FAQ-s"],
+      "blog_urls": ["https://www.tradifyhq.com/blog"],
+      "force_browser": true
+    },
+    {
+      "name": "ServiceM8",
+      "faq_urls": [],
+      "blog_urls": ["https://blog.servicem8.com/"]
+    },
+    {
+      "name": "SafetyCulture",
+      "faq_urls": [],
+      "blog_urls": ["https://blog.safetyculture.com/"]
+    },
+    {
+      "name": "Sitemate",
+      "faq_urls": [],
+      "blog_urls": []
+    },
+    {
+      "name": "Pronto",
+      "faq_urls": [],
+      "blog_urls": []
+    }
+  ]
+}
