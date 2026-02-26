@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import sys
 import time
@@ -26,10 +27,21 @@ HEADERS = {
 MIN_CONTENT_LENGTH = 100
 
 
-def fetch_page(url):
+def _build_proxies(use_proxy):
+    """Return a requests-compatible proxies dict, or None if not using proxy."""
+    if not use_proxy:
+        return None
+    proxy_url = os.environ.get("WEBSHARE_PROXY_URL")
+    if not proxy_url:
+        print("  [PROXY] WARNING: use_proxy=True but WEBSHARE_PROXY_URL is not set in .env")
+        return None
+    return {"http": proxy_url, "https": proxy_url}
+
+
+def fetch_page(url, proxies=None):
     """Fetch a page's HTML via HTTP. Returns (html, used_browser) tuple."""
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=30)
+        resp = requests.get(url, headers=HEADERS, timeout=30, proxies=proxies)
         resp.raise_for_status()
         return resp.text, False
     except requests.RequestException as e:
@@ -37,7 +49,7 @@ def fetch_page(url):
         return None, False
 
 
-def fetch_page_browser(url):
+def fetch_page_browser(url, proxy_url=None):
     """Fetch a page using headless Chromium via Playwright.
     Dismisses cookie banners, expands FAQ elements, returns full HTML.
     """
@@ -46,7 +58,11 @@ def fetch_page_browser(url):
     print(f"  [BROWSER] Rendering with headless browser...")
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            launch_kwargs = {"headless": True}
+            if proxy_url:
+                launch_kwargs["proxy"] = {"server": proxy_url}
+                print(f"  [BROWSER] Using proxy.")
+            browser = p.chromium.launch(**launch_kwargs)
             page = browser.new_page()
             page.goto(url, wait_until="domcontentloaded", timeout=30000)
             page.wait_for_timeout(3000)
@@ -139,17 +155,20 @@ def _expand_faq_elements(page):
         print(f"  [BROWSER] Expanded {total_clicked} FAQ element(s).")
 
 
-def smart_fetch(url, force_browser=False):
+def smart_fetch(url, force_browser=False, use_proxy=False):
     """Try HTTP first, fall back to browser if it fails or content is too thin."""
+    proxies = _build_proxies(use_proxy)
+    proxy_url = proxies["https"] if proxies else None
+
     if force_browser:
         print(f"  [BROWSER] Force browser mode enabled.")
-        html = fetch_page_browser(url)
+        html = fetch_page_browser(url, proxy_url=proxy_url)
         if html:
             return html, "browser"
         return None, None
 
     # Try simple HTTP first
-    html, _ = fetch_page(url)
+    html, _ = fetch_page(url, proxies=proxies)
     if html:
         text = clean_html(html, browser_rendered=False)
         if len(text) >= MIN_CONTENT_LENGTH:
@@ -162,7 +181,7 @@ def smart_fetch(url, force_browser=False):
         print(f"  [HTTP] Retrying with browser...")
 
     # Fall back to headless browser
-    html = fetch_page_browser(url)
+    html = fetch_page_browser(url, proxy_url=proxy_url)
     if html:
         return html, "browser"
 
@@ -234,10 +253,11 @@ def main():
         print(f"[{name}] Processing {len(urls)} URL(s)...")
 
         force_browser = competitor.get("force_browser", False)
+        use_proxy = competitor.get("use_proxy", False)
 
         for url in urls:
             print(f"  Fetching: {url}")
-            html, method = smart_fetch(url, force_browser=force_browser)
+            html, method = smart_fetch(url, force_browser=force_browser, use_proxy=use_proxy)
             if not html:
                 print(f"  [SKIP] Could not fetch content.")
                 continue

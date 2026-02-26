@@ -31,18 +31,21 @@
       "name": "AroFlo",
       "faq_urls": ["https://aroflo.com/resources/faq"],
       "blog_urls": ["https://aroflo.com/blog"],
-      "force_browser": true
+      "force_browser": true,
+      "use_proxy": true
     },
     {
       "name": "Procore",
       "faq_urls": [],
-      "blog_urls": ["https://www.procore.com/en-au/blog"]
+      "blog_urls": ["https://www.procore.com/en-au/blog"],
+      "use_proxy": true
     },
     {
       "name": "Tradify",
       "faq_urls": ["https://help.tradifyhq.com/hc/en-us/sections/360004878354-General-FAQ-s"],
       "blog_urls": ["https://www.tradifyhq.com/blog"],
-      "force_browser": true
+      "force_browser": true,
+      "use_proxy": true
     },
     {
       "name": "ServiceM8",
@@ -52,7 +55,8 @@
     {
       "name": "SafetyCulture",
       "faq_urls": [],
-      "blog_urls": ["https://blog.safetyculture.com/"]
+      "blog_urls": ["https://blog.safetyculture.com/"],
+      "use_proxy": true
     },
     {
       "name": "Sitemate",

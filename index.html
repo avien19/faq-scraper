@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free Competitor FAQ Report — Intelligent Resources</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+      max-width: 560px;
+      width: 100%;
+      padding: 48px 40px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: #4f46e5;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      color: #1a1a2e;
+    }
+
+    h1 span { color: #4f46e5; }
+
+    .subtitle {
+      font-size: 15px;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .benefits {
+      list-style: none;
+      margin-bottom: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .benefits li {
+      font-size: 14px;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .benefits li::before {
+      content: "✓";
+      color: #4f46e5;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin-bottom: 28px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    label .hint {
+      font-weight: 400;
+      color: #94a3b8;
+      font-size: 12px;
+      margin-left: 4px;
+    }
+
+    input[type="email"],
+    textarea {
+      width: 100%;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #1a1a2e;
+      background: #fafafa;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+      resize: vertical;
+    }
+
+    input[type="email"]:focus,
+    textarea:focus {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79,70,229,0.10);
+      background: #fff;
+    }
+
+    textarea { min-height: 110px; }
+
+    .field { margin-bottom: 20px; }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 13px;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    button[type="submit"]:hover { background: #4338ca; }
+    button[type="submit"]:active { transform: scale(0.99); }
+    button[type="submit"]:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .success {
+      display: none;
+      text-align: center;
+      padding: 32px 0 8px;
+    }
+
+    .success-icon {
+      width: 56px; height: 56px;
+      background: #ecfdf5;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 24px;
+    }
+
+    .success h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .success p {
+      font-size: 14px;
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    .error-msg {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+
+    .privacy {
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <!-- Form state -->
+    <div id="form-view">
+      <div class="badge">Free Tool</div>
+      <h1>See what your <span>competitors</span> are being asked</h1>
+      <p class="subtitle">
+        Paste in your competitors' FAQ page URLs and we'll extract every
+        question and answer into a ready-to-use CSV — free, in minutes.
+      </p>
+
+      <ul class="benefits">
+        <li>Discover gaps in your own content</li>
+        <li>Find blog post and FAQ ideas instantly</li>
+        <li>CSV lands in your inbox — no signup required</li>
+      </ul>
+
+      <hr class="divider" />
+
+      <form id="scraper-form" novalidate>
+        <div class="field">
+          <label for="urls">
+            Competitor FAQ URLs
+            <span class="hint">— one per line</span>
+          </label>
+          <textarea
+            id="urls"
+            name="urls"
+            placeholder="https://competitor.com/faq&#10;https://another.com/frequently-asked-questions"
+            required
+          ></textarea>
+        </div>
+
+        <div class="field">
+          <label for="email">Your email address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="you@company.com"
+            required
+          />
+        </div>
+
+        <button type="submit" id="submit-btn">
+          <span id="btn-text">Generate My FAQ Report</span>
+          <span class="spinner" id="spinner"></span>
+        </button>
+
+        <div class="error-msg" id="error-msg"></div>
+      </form>
+
+      <p class="privacy">No spam. We only use your email to send the report.</p>
+    </div>
+
+    <!-- Success state -->
+    <div class="success" id="success-view">
+      <div class="success-icon">📬</div>
+      <h2>Report on its way!</h2>
+      <p>
+        We're scraping your competitors' FAQ pages now.<br />
+        Check your inbox in a few minutes — the CSV will be there.
+      </p>
+    </div>
+
+  </div>
+
+  <script>
+    const WEBHOOK_URL = "https://n8n.intelligentresources.app/webhook/faq-scraper";
+
+    const form = document.getElementById("scraper-form");
+    const submitBtn = document.getElementById("submit-btn");
+    const btnText = document.getElementById("btn-text");
+    const spinner = document.getElementById("spinner");
+    const errorMsg = document.getElementById("error-msg");
+    const formView = document.getElementById("form-view");
+    const successView = document.getElementById("success-view");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorMsg.style.display = "none";
+
+      const urls = document.getElementById("urls").value.trim();
+      const email = document.getElementById("email").value.trim();
+
+      if (!urls) return showError("Please enter at least one URL.");
+      if (!email || !email.includes("@")) return showError("Please enter a valid email address.");
+
+      // Normalise: join lines into comma-separated string
+      const urlList = urls.split(/[\n,]+/).map(u => u.trim()).filter(u => u.startsWith("http")).join(",");
+      if (!urlList) return showError("No valid URLs found. Make sure each URL starts with http.");
+
+      setLoading(true);
+
+      try {
+        const res = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ urls: urlList, email }),
+        });
+
+        if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+
+        formView.style.display = "none";
+        successView.style.display = "block";
+      } catch (err) {
+        showError("Something went wrong. Please try again in a moment.");
+        setLoading(false);
+      }
+    });
+
+    function setLoading(on) {
+      submitBtn.disabled = on;
+      btnText.textContent = on ? "Generating…" : "Generate My FAQ Report";
+      spinner.style.display = on ? "block" : "none";
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.style.display = "block";
+    }
+  </script>
+</body>
+</html>
