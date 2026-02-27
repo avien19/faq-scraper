@@ -1,13 +1,15 @@
-"""scraper_public.py — Lead magnet entry point.
+"""scraper_public.py — Lead magnet CLI entry point.
 
 Usage:
-    python scraper_public.py --urls "https://example.com/faq,https://other.com/faq" --output /tmp/faqs.csv
+    python scraper_public.py --urls "https://example.com" --output /tmp/faqs.csv
 
-Called by n8n Execute Command node. Outputs a CSV file, no Google Sheets, no LLM.
+Called by n8n Execute Command node. Outputs a CSV file.
+Pipeline: Firecrawl map → select up to 5 pages → LLM extraction → CSV.
 """
 
 import argparse
 import csv
+import json
 import re
 import sys
 import time
@@ -15,104 +17,72 @@ from datetime import date
 
 from dotenv import load_dotenv
 
-from scraper import smart_fetch, clean_html, MIN_CONTENT_LENGTH
-from extractor import extract_faqs
-
 load_dotenv()
 
-REQUEST_DELAY = 2
+with open("config.json") as _f:
+    _cfg = json.load(_f)
+LLM_PROVIDER = _cfg["llm"]["provider"]
+LLM_MODEL = _cfg["llm"]["model"]
+
+REQUEST_DELAY = 1
 
 
-def parse_urls(raw):
-    """Accept comma or newline separated URLs, return clean list."""
-    urls = re.split(r"[,\n]+", raw)
-    return [u.strip() for u in urls if u.strip().startswith("http")]
-
-
-def guess_competitor_name(url):
-    """Extract a readable name from a URL (e.g. 'aroflo.com' → 'AroFlo')."""
-    match = re.search(r"(?:https?://)?(?:www\.)?([^/]+)", url)
-    if match:
-        domain = match.group(1)
-        # Strip TLD and capitalise
-        name = domain.split(".")[0]
-        return name.capitalize()
-    return url
+def parse_urls(raw: str) -> list[str]:
+    return [u.strip() for u in re.split(r"[,\n]+", raw) if u.strip().startswith("http")]
 
 
 def main():
     parser = argparse.ArgumentParser(description="Lead magnet FAQ scraper")
-    parser.add_argument(
-        "--urls",
-        required=True,
-        help="Comma-separated list of URLs to scrape",
-    )
-    parser.add_argument(
-        "--output",
-        default="/tmp/faqs.csv",
-        help="Path to write the output CSV (default: /tmp/faqs.csv)",
-    )
+    parser.add_argument("--urls", required=True)
+    parser.add_argument("--output", default="/tmp/faqs.csv")
     args = parser.parse_args()
 
-    urls = parse_urls(args.urls)
-    if not urls:
+    input_urls = parse_urls(args.urls)
+    if not input_urls:
         print("[ERROR] No valid URLs provided.")
         sys.exit(1)
 
-    print(f"Lead magnet scraper — {len(urls)} URL(s) to process\n")
+    from api import discover_faq_urls, _guess_name, _fetch_page_markdown, MIN_CONTENT_LENGTH
+    from extractor import extract_faqs
 
-    rows = []
+    print(f"Lead magnet scraper — {len(input_urls)} input URL(s)\n")
+    rows: list[list] = []
 
-    for url in urls:
-        name = guess_competitor_name(url)
-        print(f"[{name}] Fetching: {url}")
+    for input_url in input_urls:
+        name = _guess_name(input_url)
+        print(f"[{name}] Discovering FAQ pages from {input_url}...")
 
-        html, method = smart_fetch(url, force_browser=False, use_proxy=False)
-        if not html:
-            print(f"  [SKIP] Could not fetch content.")
+        urls_to_scrape = discover_faq_urls(input_url)
+        print(f"[{name}] Selected {len(urls_to_scrape)} page(s): {urls_to_scrape}\n")
+
+        for url in urls_to_scrape:
+            print(f"  Fetching: {url}")
+            content, method = _fetch_page_markdown(url)
+            if not content or len(content) < MIN_CONTENT_LENGTH:
+                print(f"  [SKIP] No usable content.")
+                time.sleep(REQUEST_DELAY)
+                continue
+
+            print(f"  Content: {len(content)} chars (via {method}). Extracting with LLM...")
+            faqs = extract_faqs(content, url, LLM_PROVIDER, LLM_MODEL)
+            print(f"  Found {len(faqs)} FAQ(s).")
+
+            for faq in faqs:
+                rows.append([name, url, faq["question"], faq["answer"], date.today().isoformat()])
+
             time.sleep(REQUEST_DELAY)
-            continue
-
-        text = clean_html(html, browser_rendered=(method == "browser"))
-        if len(text) < MIN_CONTENT_LENGTH:
-            print(f"  [WARN] Content too short ({len(text)} chars), skipping.")
-            time.sleep(REQUEST_DELAY)
-            continue
-
-        print(f"  Cleaned text: {len(text)} chars (via {method}). Extracting FAQs...")
-        faqs = extract_faqs(
-            page_text=text,
-            source_url=url,
-            provider=None,
-            model=None,
-            raw_html=html,
-            mode="free",
-        )
-        print(f"  Found {len(faqs)} FAQ(s).")
-
-        for faq in faqs:
-            rows.append([
-                name,
-                url,
-                faq["question"],
-                faq["answer"],
-                date.today().isoformat(),
-            ])
-
-        time.sleep(REQUEST_DELAY)
 
     if not rows:
-        print("\n[WARN] No FAQs found across all URLs.")
-        # Still write an empty CSV so n8n doesn't error on missing file
-        rows = [["No FAQs found. Try URLs that have a dedicated FAQ page."]]
-        write_csv(args.output, rows, headers=False)
+        print("\n[WARN] No FAQs found across all pages checked.")
+        rows = [["No FAQs found. Try submitting the direct URL of the FAQ or Help page."]]
+        _write_csv(args.output, rows, headers=False)
         sys.exit(0)
 
-    write_csv(args.output, rows)
+    _write_csv(args.output, rows)
     print(f"\nDone. {len(rows)} FAQ(s) written to {args.output}")
 
 
-def write_csv(path, rows, headers=True):
+def _write_csv(path: str, rows: list, headers: bool = True) -> None:
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if headers:

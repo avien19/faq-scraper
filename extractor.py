@@ -265,13 +265,26 @@ def _parse_llm_response(text):
     text = re.sub(r"```json\s*", "", text)
     text = re.sub(r"```\s*", "", text)
     text = text.strip()
+
+    # Try parsing the whole response first
     try:
         result = json.loads(text)
         if isinstance(result, list):
-            return [
-                r for r in result
-                if isinstance(r, dict) and "question" in r and "answer" in r
-            ]
+            return [r for r in result if isinstance(r, dict) and "question" in r and "answer" in r]
     except json.JSONDecodeError:
-        print(f"  [WARN] Failed to parse LLM response as JSON: {text[:200]}")
+        pass
+
+    # Model sometimes returns explanation text around a JSON block — extract it
+    match = re.search(r"\[.*?\]", text, re.DOTALL)
+    if match:
+        try:
+            result = json.loads(match.group())
+            if isinstance(result, list):
+                return [r for r in result if isinstance(r, dict) and "question" in r and "answer" in r]
+        except json.JSONDecodeError:
+            pass
+
+    # Non-empty response that isn't JSON = model explained why there are no FAQs
+    if text:
+        print(f"  [WARN] LLM returned non-JSON (likely no FAQs found): {text[:120]}")
     return []
