@@ -1,14 +1,18 @@
 import gspread
+from google.oauth2.service_account import Credentials
 
 
 def _get_client():
-    """Authenticate via OAuth and return a gspread client.
-    First run opens a browser for authorization. Token is cached in authorized_user.json.
+    """Authenticate via Service Account and return a gspread client.
+    Requires credentials.json (service account key file) in the project root.
+    No browser or user interaction needed — works on any server.
     """
-    return gspread.oauth(
-        credentials_filename="credentials.json",
-        authorized_user_filename="authorized_user.json",
-    )
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.readonly",
+    ]
+    creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
+    return gspread.authorize(creds)
 
 
 def get_existing_faqs(spreadsheet_name, worksheet_name):

@@ -47,6 +47,8 @@ def extract_faqs(page_text, source_url, provider, model, raw_html=None, mode="ll
         response_text = _call_openai(prompt, model)
     elif provider == "anthropic":
         response_text = _call_anthropic(prompt, model)
+    elif provider == "openrouter":
+        response_text = _call_openrouter(prompt, model)
     else:
         print(f"  [ERROR] Unknown LLM provider: {provider}")
         return []
@@ -220,6 +222,22 @@ def _call_openai(prompt, model):
     from openai import OpenAI
 
     client = OpenAI()
+    response = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.0,
+    )
+    return response.choices[0].message.content
+
+
+def _call_openrouter(prompt, model):
+    """Call OpenRouter API (OpenAI-compatible)."""
+    from openai import OpenAI
+
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=os.environ["OPENROUTER_API_KEY"],
+    )
     response = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": prompt}],

@@ -1,7 +1,7 @@
 {
   "llm": {
-    "provider": "anthropic",
-    "model": "claude-haiku-4-5-20251001"
+    "provider": "openrouter",
+    "model": "anthropic/claude-haiku-4-5"
   },
   "google_sheet": {
     "spreadsheet_name": "Competitor FAQs",
