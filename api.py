@@ -22,7 +22,9 @@ import json
 import os
 import re
 import time
+import uuid
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from urllib.parse import urlparse
 
@@ -45,6 +47,12 @@ LLM_MODEL = _cfg["llm"]["model"]
 _FIRECRAWL_KEY = os.environ.get("FIRECRAWL_API_KEY")
 
 app = FastAPI(title="FAQ Scraper API")
+
+# ---------------------------------------------------------------------------
+# Async job store
+# ---------------------------------------------------------------------------
+_jobs: dict = {}           # job_id → {"status": "processing"|"done"|"error", "result": ...}
+_executor = ThreadPoolExecutor(max_workers=4)
 
 # Caps
 MAX_URLS_PER_DOMAIN = 5
@@ -435,30 +443,26 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/scrape")
-def scrape(req: ScrapeRequest):
-    if not req.urls.strip():
-        raise HTTPException(status_code=400, detail="No URLs provided")
-
+def _run_scrape(job_id: str, urls_raw: str) -> None:
+    """Background worker — runs in a thread pool, stores result in _jobs."""
     try:
         from extractor import extract_faqs
 
         input_urls = [
-            u.strip() for u in re.split(r"[,\n]+", req.urls)
+            u.strip() for u in re.split(r"[,\n]+", urls_raw)
             if u.strip().startswith("http")
         ]
-        if not input_urls:
-            raise HTTPException(status_code=400, detail="No valid URLs found")
 
         rows: list[list] = []
         pages_checked: list[str] = []
+        seen_questions: set[str] = set()
 
         for input_url in input_urls:
             name = _guess_name(input_url)
-            print(f"\n[{name}] Discovering FAQ pages from {input_url}...")
+            print(f"\n[job:{job_id[:8]}] [{name}] Discovering FAQ pages from {input_url}...")
 
             urls_to_scrape = discover_faq_urls(input_url)
-            print(f"[{name}] Selected {len(urls_to_scrape)} page(s): {urls_to_scrape}")
+            print(f"[job:{job_id[:8]}] [{name}] Selected: {urls_to_scrape}")
 
             for url in urls_to_scrape:
                 pages_checked.append(url)
@@ -474,21 +478,27 @@ def scrape(req: ScrapeRequest):
                 print(f"  Found {len(faqs)} FAQ(s).")
 
                 for faq in faqs:
-                    rows.append([name, url, faq["question"], faq["answer"], date.today().isoformat()])
+                    if faq["question"] not in seen_questions:
+                        seen_questions.add(faq["question"])
+                        rows.append([name, url, faq["question"], faq["answer"], date.today().isoformat()])
 
                 time.sleep(1)
 
         if not rows:
-            return {
-                "found": False,
-                "pages_checked": pages_checked,
-                "message": (
-                    "We couldn't find any FAQ content on the pages we checked. "
-                    "This usually means the site doesn't have a dedicated FAQ section, "
-                    "or the content is loaded dynamically. "
-                    "Try submitting the direct URL of the FAQ or Help page (e.g. example.com/faq)."
-                ),
+            _jobs[job_id] = {
+                "status": "done",
+                "result": {
+                    "found": False,
+                    "pages_checked": pages_checked,
+                    "message": (
+                        "We couldn't find any FAQ content on the pages we checked. "
+                        "This usually means the site doesn't have a dedicated FAQ section, "
+                        "or the content is loaded dynamically. "
+                        "Try submitting the direct URL of the FAQ or Help page (e.g. example.com/faq)."
+                    ),
+                },
             }
+            return
 
         buf = io.StringIO()
         writer = csv.writer(buf)
@@ -496,14 +506,55 @@ def scrape(req: ScrapeRequest):
         writer.writerows(rows)
         csv_b64 = base64.b64encode(buf.getvalue().encode("utf-8")).decode("ascii")
 
-        return {
-            "found": True,
-            "count": len(rows),
-            "csv": csv_b64,
-            "pages_checked": pages_checked,
+        _jobs[job_id] = {
+            "status": "done",
+            "result": {
+                "found": True,
+                "count": len(rows),
+                "csv": csv_b64,
+                "pages_checked": pages_checked,
+            },
         }
+        print(f"[job:{job_id[:8]}] Done — {len(rows)} FAQ(s).")
 
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[job:{job_id[:8]}] ERROR: {e}")
+        _jobs[job_id] = {"status": "error", "result": {"error": str(e)}}
+
+
+@app.post("/scrape")
+def scrape(req: ScrapeRequest):
+    """
+    Start a scrape job. Returns immediately with a job_id.
+    Poll GET /result/{job_id} until status is 'done' or 'error'.
+    """
+    if not req.urls.strip():
+        raise HTTPException(status_code=400, detail="No URLs provided")
+
+    input_urls = [
+        u.strip() for u in re.split(r"[,\n]+", req.urls)
+        if u.strip().startswith("http")
+    ]
+    if not input_urls:
+        raise HTTPException(status_code=400, detail="No valid URLs found")
+
+    job_id = str(uuid.uuid4())
+    _jobs[job_id] = {"status": "processing", "result": None}
+    _executor.submit(_run_scrape, job_id, req.urls)
+
+    return {"job_id": job_id, "status": "processing"}
+
+
+@app.get("/result/{job_id}")
+def get_result(job_id: str):
+    """
+    Poll for scrape job result.
+    Returns {"status": "processing"} while running.
+    Returns {"status": "done", "result": {...}} when complete.
+    """
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job["status"] == "processing":
+        return {"status": "processing"}
+    return {"status": job["status"], **job["result"]}
