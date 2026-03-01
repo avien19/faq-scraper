@@ -5,84 +5,120 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Running the Scraper
 
 ```bash
-# Normal run (reads from Google Sheets for dedup, appends new FAQs)
+# Internal pipeline — reads from Google Sheets for dedup, appends new FAQs
 python scraper.py
 
-# Dry run (no Sheet reads/writes, prints what would be added)
+# Dry run — no Sheet reads/writes, prints what would be added
 python scraper.py --dry-run
 
-# Lead magnet CLI (no LLM, no Sheets — outputs CSV)
-python scraper_public.py --urls "https://example.com/faq" --output /tmp/faqs.csv
-
-# Run the FastAPI lead magnet endpoint (deployed on Coolify)
+# Lead magnet API — deployed on Coolify, port 8000
 uvicorn api:app --host 0.0.0.0 --port 8000
 ```
 
 ## Setup Requirements
 
-Install dependencies:
 ```bash
 pip install -r requirements.txt
-# Also install provider-specific packages as needed:
-pip install anthropic openai playwright
-playwright install chromium
 ```
 
-Create a `.env` file with API keys for whichever LLM provider is set in `config.json`:
+`.env` file:
 ```
-OPENROUTER_API_KEY=...   # for openrouter provider (current default)
-ANTHROPIC_API_KEY=...    # for anthropic provider
-GEMINI_API_KEY=...       # for gemini provider
-# OpenAI uses OPENAI_API_KEY from environment automatically
-
-FIRECRAWL_API_KEY=...    # for lead magnet URL discovery + page fetching (api.py / scraper_public.py)
-
-# Optional: Webshare proxy for sites that block scrapers (see config.json use_proxy flag)
-# Format: http://username:password@proxy-host:port
-WEBSHARE_PROXY_URL=...
+OPENROUTER_API_KEY=...   # current default LLM provider
+FIRECRAWL_API_KEY=...    # URL discovery + page fetching for lead magnet
+WEBSHARE_PROXY_URL=...   # optional proxy (http://user:pass@host:port)
 ```
 
-Google Sheets authentication requires `credentials.json` (OAuth desktop app credentials from Google Cloud Console). On first run it opens a browser for authorization and caches the token in `authorized_user.json`.
+Google Sheets auth (internal pipeline only): `credentials.json` from Google Cloud Console. First run opens browser to authorize; caches token as `authorized_user.json`.
 
 ## Architecture
 
-There are two separate pipelines:
+Two separate pipelines:
 
-**Internal pipeline** (LLM-powered, writes to Google Sheets):
+**Internal pipeline** (LLM + Google Sheets):
 `config.json → scraper.py → extractor.py → sheets.py`
 
-**Lead magnet pipeline** (no LLM, no Sheets, free-tier public):
-- CLI: `scraper_public.py → extractor.py` (free mode) → CSV file
-- API: `api.py → extractor.py` (free mode) → JSON with base64 CSV
+**Lead magnet pipeline** (LLM, no Sheets, public):
+`n8n → api.py → extractor.py → base64 CSV → n8n → Gmail`
 
-**`scraper.py`** — orchestration entry point for the internal pipeline. Reads `config.json`, loads competitors either from config or from a live source Google Sheet, fetches pages, calls `extract_faqs()`, deduplicates against existing sheet rows, and appends new FAQs.
+---
 
-**`extractor.py`** — extraction logic with two modes:
-- `mode="llm"` (default): sends cleaned page text to the configured LLM provider and returns JSON `[{question, answer}]` pairs. Supports `anthropic`, `openai`, `gemini`, and `openrouter` providers (imported lazily).
-- `mode="free"`: no LLM, tries schema.org FAQPage JSON-LD → HTML class patterns → `<details>`/`<summary>` → text heuristics.
+### Lead Magnet — Full Flow
 
-**`sheets.py`** — Google Sheets I/O via `gspread`. `get_existing_faqs()` reads all rows for deduplication; `append_faqs()` appends new rows; `get_competitor_urls()` reads the source competitor URL list. Sheet columns: `Competitor | Source URL | Question | Answer | Date First Seen`.
+**User submits** the form at `faq.intelligentresources.app` with URLs + email.
 
-**`api.py`** — FastAPI wrapper for the lead magnet. n8n POSTs `{ "urls": "..." }` to `POST /scrape`. For each domain: (1) fetches `robots.txt` + `sitemap.xml` to discover all page URLs, (2) scores and selects up to 5 pages (FAQ/help pages first, then homepage, then blog articles), (3) extracts FAQs with LLM. Returns `{ "found": true, "count": N, "csv": "<base64>", "pages_checked": [...] }`.
+**n8n workflow** (`tBiQRf6dFVhD2DvN` at `n8n.intelligentresources.app`):
+1. **Webhook** — receives POST at `/webhook/faq-scraper` with `{ urls, email }`
+2. **Prepare Variables** — extracts `urls` and `email` from webhook body
+3. **Start Scrape Job** — POSTs `{ urls }` to `POST /scrape` on the Coolify server → gets back `{ job_id }`
+4. **Wait 10s** — waits before first poll
+5. **Poll Result** — GETs `/result/{job_id}`
+6. **Still Processing?** — IF `status == "processing"` → loops back to Wait 10s; otherwise continues
+7. **FAQs Found?** — IF `found == true` → Decode CSV branch; else → Send No-Data Email
+8. **Decode CSV** — Code node: base64-decodes the CSV into a binary attachment
+9. **Send Report** — Gmail node: sends email with CSV attached (credential: `WBg8j6jRwooHB9oX`)
+   OR **Send No-Data Email** — Gmail node: sends "no FAQ content found" message
 
-**`scraper_public.py`** — CLI wrapper for the lead magnet. Called by n8n Execute Command node. Shares the same `discover_faq_urls()` pipeline from `api.py` and uses LLM extraction. Writes a CSV file.
+**Coolify server** (`aos4gsswcog44sc04okwc000.intelligentresources.app`):
+- `POST /scrape` — validates URLs, creates a job_id, starts background thread, returns `{ job_id, status: "processing" }` immediately
+- `GET /result/{job_id}` — returns `{ status: "processing" }` while running, or `{ status: "done", found, count, csv, pages_checked }` when complete
+- Background worker (`_run_scrape`):
+  1. **URL discovery** (`discover_faq_urls`): Firecrawl map → sitemap fallback → path probing
+  2. **Categorise** each discovered URL: `faq` > `help` > `home` > `article_index` (posts skipped)
+  3. **Select** up to 5 pages in priority order
+  4. **Fetch** each page via Firecrawl scrape → HTTP fallback (max 60,000 chars)
+  5. **Extract** FAQs via LLM (OpenRouter + Claude Haiku 4.5)
+  6. **Deduplicate** by question text, build CSV, base64-encode it
 
-## Key Design Decisions
+---
 
-**Fetching strategy** (`smart_fetch` in scraper.py): HTTP first, browser fallback. If HTTP content is under 100 chars (JS-rendered), or HTTP fails, it retries with headless Playwright. The browser mode dismisses cookie banners and clicks accordion/dropdown FAQ elements before extracting HTML. Per-competitor `force_browser: true` in config skips HTTP entirely.
+### Key Design Decisions
 
-**Deduplication**: Normalized key of `competitor::question` (lowercased, punctuation stripped). Runs in-memory during a session so the same run won't add duplicates even across multiple URLs for the same competitor.
+**Async job pattern**: `POST /scrape` returns immediately to avoid Cloudflare's 100s timeout. n8n polls every 10s until done.
 
-**LLM as universal parser**: Rather than per-site CSS selectors, raw page text is sent to an LLM. The prompt instructs it to extract Q&A pairs from dedicated FAQ pages (all pairs) vs. blog posts (only explicit FAQ sections).
+**Firecrawl map for URL discovery**: Crawls the entire site (no sitemap needed). With `include_subdomains=True` to catch help subdomains like `helpguide.simprogroup.com`.
 
-**Lead magnet URL discovery** (`discover_faq_urls` in `api.py`): Given any input URL, derives the base domain and fetches sitemaps (`robots.txt` → `sitemap.xml` → `sitemap_index.xml`). Categorises URLs by path keywords: `faq`/`faqs` → FAQ, `help`/`support` → help, `blog`/`articles` → article. Selects up to 5 pages in priority order: FAQ pages → help page → homepage → blog articles. Falls back to probing common paths (`/faq`, `/help`, etc. via HEAD) when the sitemap has no FAQ/help pages.
+**Subdomain detection**: Any discovered subdomain whose prefix is in `_HELP_SUBDOMAIN_KW` (help, support, docs, kb, faq, etc.) gets its own dedicated map call to discover its full URL list.
+
+**URL categorisation** (`_categorize_url`):
+- `faq` — path contains faq/faqs/frequently-asked
+- `help` — path contains help/support/docs/kb/knowledge-base etc.
+- `home` — root path
+- `article_index` — blog keyword with no slug after it (e.g. `/blog`, `/resources/webinars`)
+- `article_post` — blog keyword + slug (2+ hyphens OR >20 chars) → **always skipped**
+
+**Slug detection** (`_is_slug`): A path segment is a post slug if it has `>=2 hyphens` OR `>20 chars`. Category names like `case-studies` have only 1 hyphen so they're treated as index pages.
+
+**MAX_PAGE_CHARS = 60,000**: Raised from 20,000 to avoid cutting off FAQ sections near the bottom of long pages.
+
+**LLM extraction** (`extractor.py`): Sends clean Markdown to LLM, which returns `[{question, answer}]` JSON. Deduplication by exact question text within a job run.
+
+---
+
+### Files
+
+- **`api.py`** — FastAPI lead magnet server. Async job pattern, Firecrawl discovery, LLM extraction.
+- **`extractor.py`** — LLM extraction logic. Supports anthropic, openai, gemini, openrouter providers.
+- **`scraper.py`** — Internal pipeline orchestration. Reads config, fetches pages, deduplicates, writes to Sheets.
+- **`sheets.py`** — Google Sheets I/O via gspread.
+- **`config.json`** — LLM provider/model, sheet names, domain-level overrides.
+
+---
 
 ## Configuration (`config.json`)
 
 - `llm.provider` — `openrouter` (current), `anthropic`, `openai`, or `gemini`
-- `llm.model` — model ID for the chosen provider (e.g. `anthropic/claude-haiku-4-5` for openrouter)
-- `google_sheet.spreadsheet_name` / `worksheet_name` — output sheet for scraped FAQs
-- `source_sheet.spreadsheet_name` / `worksheet_name` — input sheet with competitor URLs (columns: homepage, FAQ URL, blog URL). If set, overrides the `competitors` array.
+- `llm.model` — model ID (e.g. `anthropic/claude-haiku-4-5` for openrouter)
+- `google_sheet.spreadsheet_name` / `worksheet_name` — output sheet (internal pipeline)
+- `source_sheet.spreadsheet_name` / `worksheet_name` — input competitor URL list (overrides `competitors[]`)
 - `request_delay_seconds` — sleep between URL fetches
-- `domain_settings` — domain-keyed overrides (e.g. `{ "aroflo.com": { "force_browser": true, "use_proxy": true } }`)
-- Per-competitor in `competitors[]`: `faq_urls`, `blog_urls`, `homepage`, `force_browser`, `use_proxy`
+- `domain_settings` — per-domain overrides: `{ "domain.com": { "force_browser": true, "use_proxy": true } }`
+
+---
+
+## Deployment
+
+Server: Coolify at `aos4gsswcog44sc04okwc000.intelligentresources.app`
+n8n: `n8n.intelligentresources.app` — workflow ID `tBiQRf6dFVhD2DvN`
+Lead magnet frontend: `faq.intelligentresources.app`
+
+To deploy: push to `master` → redeploy in Coolify (auto git pull + restart).
