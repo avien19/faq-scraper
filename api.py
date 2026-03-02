@@ -374,21 +374,35 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
          Posts are included because they may contain FAQ sections. The LLM returns []
          if a post has no FAQ content, so there is no cost beyond the fetch.
 
-    Discovery: Firecrawl map → sitemap fallback → common path probing.
+    Discovery: Firecrawl map + sitemap (always both, merged) → common path probing fallback.
     """
     base = _base_url(input_url)
     domain = urlparse(base).netloc
 
-    # Discover all URLs
-    try:
-        if _FIRECRAWL_KEY:
+    # Discover all URLs — always check both Firecrawl AND the sitemap.
+    # Firecrawl finds pages reachable via <a> links (navigation, internal links).
+    # The sitemap is the definitive list of every page the site owner wants indexed
+    # and catches pages not linked anywhere in the navigation (e.g. /pricing subpages).
+    # Results are merged and deduplicated so we never miss pages from either source.
+    all_urls: list[str] = []
+    if _FIRECRAWL_KEY:
+        try:
             all_urls = _map_urls_firecrawl(base)
-        else:
-            print(f"  [MAP] No FIRECRAWL_API_KEY — falling back to sitemap.")
-            all_urls = _map_urls_sitemap(base)
-    except Exception as e:
-        print(f"  [MAP] Discovery failed ({e}), falling back to sitemap.")
-        all_urls = _map_urls_sitemap(base)
+        except Exception as e:
+            print(f"  [MAP] Firecrawl failed ({e}).")
+
+    sitemap_urls = _map_urls_sitemap(base)
+    if sitemap_urls:
+        before = len(all_urls)
+        seen = set(all_urls)
+        for u in sitemap_urls:
+            if u not in seen:
+                seen.add(u)
+                all_urls.append(u)
+        print(f"  [SITEMAP] Added {len(all_urls) - before} new URL(s) not found by Firecrawl.")
+
+    if not all_urls:
+        print(f"  [MAP] No URLs discovered from Firecrawl or sitemap.")
 
     # Keep URLs on the same root domain (including subdomains like helpguide.*, docs.*, etc.)
     root = _root_domain(domain)
