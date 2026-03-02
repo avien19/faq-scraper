@@ -116,7 +116,7 @@ Each URL is categorised into one of six types:
 | `home` | Root path only (no segments) | `example.com/` |
 | `article_index` | Path has a blog keyword with **no slug** after it — listing/category page | `/blog`, `/resources/guides`, `/blog/case-studies` |
 | `article_post` | Path has a blog keyword followed by a **slug** — individual post | `/blog/how-to-manage-field-service` |
-| `other` | Anything not matched above — ignored | `/gtm-engineering`, `/pricing` |
+| `other` | Anything not matched above — slot-filler, sorted shortest path first | `/gtm-engineering`, `/pricing` |
 
 **How slugs are detected:** a path segment is a post slug if it has **2 or more hyphens** OR is **longer than 20 characters**. Short single-hyphen segments are category names, not posts.
 
@@ -145,8 +145,9 @@ Pages are selected in strict priority order, up to a maximum of **12 pages per d
 | 3rd | Homepage | 1 | Often has an FAQ section |
 | 4th | Blog/content index pages (`/blog`, `/resources`) | 2 | Listing pages, not individual posts |
 | 5th | Individual blog/article posts (slug in path) | 5 | LLM skips if no FAQ section |
+| 6th | Everything else — slot-filler only | up to 3 | Fills remaining capacity when priority pages don't use all 12 slots |
 
-Everything else (`other` — service pages, pricing, feature pages) is ignored. Competitor sites almost never put FAQs on these pages, and including them would waste credits and slow jobs. If a specific service page needs scraping, submit its URL directly.
+**How priority 6 works:** `other` pages (service, pricing, feature pages — anything not matching the above categories) are sorted by path depth, shortest first, so top-level pages like `/pricing` or `/features` come before deep subpages. They are only selected if there are still open slots after all priority pages are chosen. A site with 3 FAQ + 1 help + 1 home + 2 blog index + 5 blog posts uses all 12 slots — no `other` pages get in. A site with no FAQ or help pages at all leaves 7 open slots — blog posts and then `other` pages fill them. This ensures we never waste capacity on sites that don't follow `/faq` naming conventions.
 
 If the user submitted a specific FAQ or help URL (e.g. `https://aroflo.com/resources/faq`), that URL is always included first regardless of discovery.
 
