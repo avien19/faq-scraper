@@ -147,7 +147,7 @@ Pages are selected in strict priority order, up to a maximum of **12 pages per d
 | 5th | Individual blog/article posts (slug in path) | 5 | LLM skips if no FAQ section |
 | 6th | Everything else — slot-filler | all remaining slots | Fills remaining capacity when priority pages don't use all 12 slots |
 
-**How priority 6 works:** `other` pages (service, pricing, feature pages — anything not matching the above categories) are sorted by path depth, shortest first, so top-level pages like `/pricing` or `/features` come before deep subpages like `/gtm-engineering/pricing`. They fill **all** remaining slots after priority pages — there is no separate inner cap. A site with 3 FAQ + 1 help + 1 home + 2 blog index + 5 blog posts uses all 12 slots — no `other` pages get in. A site with no FAQ or help pages at all leaves 7 open slots — blog posts fill 5, then `other` pages fill the last 2. This ensures service and pricing pages (which often have FAQ sections) are always checked when there's capacity.
+**How priority 6 works:** `other` pages (service, pricing, feature pages — anything not matching the above categories) are sorted by path depth, shortest first, so `/pricing` (1 segment) comes before `/gtm-engineering/pricing` (2 segments). They fill **all** remaining slots after priority pages — there is no separate inner cap. Example: a site with 3 FAQ + 1 help + 1 home + 2 blog index + 5 blog posts uses all 12 slots — no `other` pages get in. A site with no FAQ or help pages (like `intelligentresourcing.co`) uses 1 home + 1 article_index + 5 article_post = 7 slots, leaving 5 open for `other` pages like `/gtm-engineering`, `/clay-workflow-expert`, `/gtm-engineering/pricing`, etc.
 
 If the user submitted a specific FAQ or help URL (e.g. `https://aroflo.com/resources/faq`), that URL is always included first regardless of discovery.
 
@@ -256,7 +256,7 @@ Back in n8n:
 |----------|-----------|
 | Normal page | Longest of: static HTTP text vs Firecrawl rawHtml text |
 | Accordion / collapsed answers (CSS `display:none`) | Static HTTP HTML wins — contains hidden elements that Firecrawl's browser strips |
-| JavaScript-rendered page (content not in static HTML) | Firecrawl markdown or rawHtml wins — Firecrawl renders JS before extracting |
+| JavaScript-rendered page (content not in static HTML) | Firecrawl rawHtml wins — Firecrawl renders JS before extracting |
 | Page under 100 chars after fetch | Skipped |
 
 ### What gets skipped

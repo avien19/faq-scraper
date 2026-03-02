@@ -12,7 +12,7 @@ Pipeline per domain:
   2. Categorise each URL: faq | help | home | article_index | article_post | other
   3. Select up to 12 pages in priority order:
        max 3 FAQ → 1 help → 1 home → 2 article_index → 5 article_post
-       → up to 3 other (slot-filler only, shortest path first)
+       → other pages fill ALL remaining slots (shortest path first, no inner cap)
   4. Fetch each page — static HTTP (BS4) vs Firecrawl rawHtml (BS4); longest wins.
      Max 60,000 chars per page.
   5. Extract FAQs via LLM (Claude Haiku 4.5 via OpenRouter).
