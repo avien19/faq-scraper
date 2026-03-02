@@ -55,10 +55,10 @@ _jobs: dict = {}           # job_id → {"status": "processing"|"done"|"error", 
 _executor = ThreadPoolExecutor(max_workers=4)
 
 # Caps
-MAX_URLS_PER_DOMAIN = 7
+MAX_URLS_PER_DOMAIN = 12
 MAX_FAQ_PAGES = 3          # dedicated FAQ/help pages
 MAX_ARTICLE_INDEXES = 2    # blog/content INDEX pages (not posts)
-MAX_ARTICLE_POSTS = 2      # individual blog/article posts (LLM returns [] if no FAQ section)
+MAX_ARTICLE_POSTS = 5      # individual blog/article posts (LLM returns [] if no FAQ section)
 MAX_PAGE_CHARS = 60_000    # truncate content before sending to LLM (Haiku handles this fine)
 
 MIN_CONTENT_LENGTH = 100   # chars — skip pages shorter than this
