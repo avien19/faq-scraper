@@ -1,18 +1,22 @@
-"""api.py — FastAPI wrapper for the lead magnet scraper.
+"""api.py — FastAPI lead magnet server.
 
-Deployed on Coolify. n8n POSTs URLs here, gets back JSON.
+Deployed on Coolify. n8n POSTs URLs here, polls for results.
 
-POST /scrape
-  Body: { "urls": "https://a.com,https://b.com" }
-  Pipeline per domain:
-    1. Firecrawl map — discover all URLs on the site (no sitemap needed)
-    2. Score & select up to 5 pages:
-         FAQ/help pages first → homepage → blog/content INDEX pages only
-         (individual posts are skipped; only the listing page is included)
-    3. Fetch each page via Firecrawl (clean Markdown) and extract FAQs with LLM
-  Returns:
-    { "found": true,  "count": N, "csv": "<base64>", "pages_checked": [...] }
-    { "found": false, "message": "...", "pages_checked": [...] }
+POST /scrape  →  { job_id, status: "processing" }
+GET  /result/{job_id}  →  { status, found, count, csv (base64), pages_checked }
+
+Pipeline per domain:
+  1. URL discovery — Firecrawl map (up to 500 URLs, follows <a> links) + sitemap
+     (always both, merged). Help subdomains get their own map (300 URLs). MadCap
+     Flare fallback for JS-only help portals. Common path probing if nothing found.
+  2. Categorise each URL: faq | help | home | article_index | article_post | other
+  3. Select up to 12 pages in priority order:
+       max 3 FAQ → 1 help → 1 home → 2 article_index → 5 article_post
+       → up to 3 other (slot-filler only, shortest path first)
+  4. Fetch each page — static HTTP (BS4) vs Firecrawl rawHtml (BS4); longest wins.
+     Max 60,000 chars per page.
+  5. Extract FAQs via LLM (Claude Haiku 4.5 via OpenRouter).
+  6. Deduplicate by question text, build CSV, base64-encode.
 """
 
 import base64

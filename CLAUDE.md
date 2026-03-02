@@ -105,7 +105,7 @@ Firecrawl Markdown is intentionally not used — it's a stripped-down version of
 
 ### Files
 
-- **`api.py`** — FastAPI lead magnet server. Async job pattern, Firecrawl discovery, MadCap Flare TOC parsing, three-source page fetching, LLM extraction.
+- **`api.py`** — FastAPI lead magnet server. Async job pattern, Firecrawl + sitemap discovery, MadCap Flare TOC parsing, two-source page fetching, LLM extraction.
 - **`extractor.py`** — LLM extraction logic. Supports anthropic, openai, gemini, openrouter providers.
 - **`scraper.py`** — Internal pipeline orchestration. Reads config, fetches pages, deduplicates, writes to Sheets.
 - **`sheets.py`** — Google Sheets I/O via gspread. OAuth auth. `get_competitor_urls()` reads the source sheet.
