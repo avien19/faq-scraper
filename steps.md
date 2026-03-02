@@ -28,9 +28,59 @@ Webhook → Prepare Variables → Start Scrape Job (POST /scrape)
 
 **Background thread does:**
 
-1. **Firecrawl map** — crawls the whole site to find all URLs, including help subdomains (e.g. `helpguide.simprogroup.com`)
+1. **Firecrawl map** — crawls the whole site to find all URLs, including help subdomains (e.g. `helpguide.simprogroup.com`). For MadCap Flare help sites (JS-only navigation, no sitemap), reads TOC chunk files directly from `/Data/Tocs/` to discover all pages.
 2. **Categorise URLs** — faq > help > home > blog index (individual posts skipped)
-3. **Select up to 5 pages** in that priority order
-4. **Fetch each page** via Firecrawl (clean Markdown, max 60k chars)
+3. **Select up to 5 pages** in that priority order (up to 3 FAQ/help pages + homepage + up to 2 blog index pages)
+4. **Fetch each page** via Firecrawl — requests both Markdown and raw HTML. Raw HTML is parsed with BeautifulSoup to include CSS-hidden content (e.g. collapsed accordions). Whichever is longer wins. Max 60k chars per page.
 5. **Extract FAQs** with Claude Haiku 4.5 via OpenRouter
 6. **Return** base64-encoded CSV with columns: Competitor, Source URL, Question, Answer, Date
+
+---
+
+## Limits & Constraints
+
+### Per submission
+| What | Limit |
+|------|-------|
+| URLs per submission | No hard limit, but each domain takes ~1–3 min |
+| Pages scraped per domain | Max **5 pages** |
+| FAQ/help pages per domain | Max **3** |
+| Blog index pages per domain | Max **2** |
+| Page content sent to LLM | Max **60,000 chars** per page |
+| Deduplication | By question text — exact duplicates within the same job are dropped |
+
+### URL discovery
+| Scenario | Behaviour |
+|----------|-----------|
+| Site has a sitemap | Firecrawl map is used first (faster, more complete) |
+| Site has no sitemap | Firecrawl crawls via `<a>` links |
+| Help/docs subdomain detected | Separate map call on that subdomain (e.g. `helpguide.simprogroup.com`) |
+| MadCap Flare help site | TOC chunk files read directly — bypasses JS-only navigation |
+| No FAQ/help pages found anywhere | Falls back to probing common paths: `/faq`, `/help`, `/support`, `/kb` etc. |
+| Firecrawl fails entirely | Falls back to plain HTTP + BeautifulSoup |
+
+### Content extraction
+| Scenario | Behaviour |
+|----------|-----------|
+| Normal page | Firecrawl Markdown (clean, structured) |
+| Accordion / collapsed answers (e.g. Webflow, CSS `display:none`) | Raw HTML parsed by BeautifulSoup — includes hidden elements |
+| JavaScript-rendered page | Firecrawl renders JS before extracting |
+| Page under 100 chars after fetch | Skipped |
+
+### What gets skipped
+- Individual blog/article posts (only the listing page is included)
+- Pages shorter than 100 characters after fetching
+- Duplicate questions within the same job run
+- URLs that aren't on the same root domain as the submitted URL
+
+### Known edge cases
+- **Dynamically loaded FAQ content** (answers fetched via API on click) — neither Firecrawl nor BeautifulSoup can retrieve these. The user will get questions only or nothing.
+- **Login-gated pages** — will return empty or an error page.
+- **Very large sites** — Firecrawl map is capped at 500 URLs for the main domain and 300 for subdomains. Pages beyond that won't be discovered.
+- **Rate limiting / bot protection** — some sites block scrapers even with a real User-Agent. These will return empty content.
+- **MadCap Flare** — supported via TOC parsing. Other JS-heavy help platforms (Zendesk Guide, Intercom Articles, Salesforce Help) may have limited discovery.
+
+### Timing
+- Each domain takes roughly **1–3 minutes** depending on how many pages are scraped and how fast the site responds
+- The n8n polling loop checks every **10 seconds**
+- No hard timeout on the scrape job — it runs until complete or errors

@@ -49,7 +49,7 @@ Two separate pipelines:
 **n8n workflow** (`tBiQRf6dFVhD2DvN` at `n8n.intelligentresources.app`):
 1. **Webhook** — receives POST at `/webhook/faq-scraper` with `{ urls, email }`
 2. **Prepare Variables** — extracts `urls` and `email` from webhook body
-3. **Start Scrape Job** — POSTs `{ urls }` to `POST /scrape` on the Coolify server → gets back `{ job_id }`
+3. **Start Scrape Job** — POSTs `{ urls }` to `POST /scrape` → gets back `{ job_id }`
 4. **Wait 10s** — waits before first poll
 5. **Poll Result** — GETs `/result/{job_id}`
 6. **Still Processing?** — IF `status == "processing"` → loops back to Wait 10s; otherwise continues
@@ -62,10 +62,10 @@ Two separate pipelines:
 - `POST /scrape` — validates URLs, creates a job_id, starts background thread, returns `{ job_id, status: "processing" }` immediately
 - `GET /result/{job_id}` — returns `{ status: "processing" }` while running, or `{ status: "done", found, count, csv, pages_checked }` when complete
 - Background worker (`_run_scrape`):
-  1. **URL discovery** (`discover_faq_urls`): Firecrawl map → sitemap fallback → path probing
+  1. **URL discovery** (`discover_faq_urls`): Firecrawl map → MadCap Flare TOC fallback → sitemap fallback → path probing
   2. **Categorise** each discovered URL: `faq` > `help` > `home` > `article_index` (posts skipped)
-  3. **Select** up to 5 pages in priority order
-  4. **Fetch** each page via Firecrawl scrape → HTTP fallback (max 60,000 chars)
+  3. **Select** up to 5 pages in priority order (max 3 FAQ/help, 1 home, 2 blog index)
+  4. **Fetch** each page via Firecrawl — requests both Markdown and rawHtml. BeautifulSoup parses rawHtml to include CSS-hidden content (e.g. collapsed accordions). Whichever is longer wins. Max 60,000 chars.
   5. **Extract** FAQs via LLM (OpenRouter + Claude Haiku 4.5)
   6. **Deduplicate** by question text, build CSV, base64-encode it
 
@@ -79,6 +79,10 @@ Two separate pipelines:
 
 **Subdomain detection**: Any discovered subdomain whose prefix is in `_HELP_SUBDOMAIN_KW` (help, support, docs, kb, faq, etc.) gets its own dedicated map call to discover its full URL list.
 
+**MadCap Flare discovery** (`_map_urls_madcap_flare`): MadCap Flare help sites have an empty `<body>` and JS-only navigation — Firecrawl map only finds ~1 page. When a help subdomain returns <20 URLs from Firecrawl, the scraper fetches `/Data/HelpSystem.js` → follows the `Toc` reference → reads TOC chunk JS files → extracts all page URLs. This is how `helpguide.simprogroup.com` (767 pages, 10 FAQ pages) is fully discovered.
+
+**rawHtml for hidden content**: Firecrawl's markdown output strips CSS-hidden elements. Sites like Aroflo (Webflow) hide accordion answers via `display:none`. Requesting `rawHtml` and parsing with BeautifulSoup includes all DOM content regardless of CSS visibility. The longer result (markdown vs rawHtml text) is used.
+
 **URL categorisation** (`_categorize_url`):
 - `faq` — path contains faq/faqs/frequently-asked
 - `help` — path contains help/support/docs/kb/knowledge-base etc.
@@ -90,17 +94,18 @@ Two separate pipelines:
 
 **MAX_PAGE_CHARS = 60,000**: Raised from 20,000 to avoid cutting off FAQ sections near the bottom of long pages.
 
-**LLM extraction** (`extractor.py`): Sends clean Markdown to LLM, which returns `[{question, answer}]` JSON. Deduplication by exact question text within a job run.
+**LLM extraction** (`extractor.py`): Sends clean text to LLM, which returns `[{question, answer}]` JSON. Deduplication by exact question text within a job run.
 
 ---
 
 ### Files
 
-- **`api.py`** — FastAPI lead magnet server. Async job pattern, Firecrawl discovery, LLM extraction.
+- **`api.py`** — FastAPI lead magnet server. Async job pattern, Firecrawl discovery, MadCap Flare TOC parsing, rawHtml extraction, LLM extraction.
 - **`extractor.py`** — LLM extraction logic. Supports anthropic, openai, gemini, openrouter providers.
 - **`scraper.py`** — Internal pipeline orchestration. Reads config, fetches pages, deduplicates, writes to Sheets.
 - **`sheets.py`** — Google Sheets I/O via gspread.
 - **`config.json`** — LLM provider/model, sheet names, domain-level overrides.
+- **`steps.md`** — Human-readable explanation of the full flow including limits and constraints.
 
 ---
 
