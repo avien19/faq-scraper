@@ -90,15 +90,22 @@ Each URL is categorised into one of five types:
 | `faq` | Path contains `faq`, `faqs`, or `frequently-asked` | `/resources/faq`, `/support/faqs` |
 | `help` | Path contains `help`, `support`, `docs`, `kb`, `knowledge-base`, etc. | `/help-center`, `/docs` |
 | `home` | Root path only (no segments) | `example.com/` |
-| `article_index` | Path has a blog keyword (`blog`, `articles`, `resources`, `guides`, etc.) with no post slug after it | `/blog`, `/resources/guides` |
-| `article_post` | Path has a blog keyword followed by a **slug** | `/blog/how-to-manage-field-service` |
+| `article_index` | Path has a blog keyword with **no slug** after it — this is a listing/category page | `/blog`, `/resources/guides`, `/blog/case-studies` |
+| `article_post` | Path has a blog keyword followed by a **slug** — this is an individual post | `/blog/how-to-manage-field-service` |
 
-**How slugs are detected:** a path segment is treated as a post slug (not a category) if it has **2 or more hyphens** OR is **longer than 20 characters**.
+**How slugs are detected:** a path segment is a post slug if it has **2 or more hyphens** OR is **longer than 20 characters**. Short single-hyphen segments are category names, not posts.
+
 Examples:
 - `/blog/case-studies` → `case-studies` has 1 hyphen → **article_index** (category page)
-- `/blog/service-reminder-email` → 2 hyphens → **article_post** (post)
-- `/blog/how-to-manage-field-service` → 4 hyphens → **article_post** (post)
+- `/blog/service-reminder-email` → 2 hyphens → **article_post** (individual post)
+- `/blog/how-to-manage-field-service` → 4 hyphens → **article_post** (individual post)
 - `/resources/webinars/mastering-growth` → 2 segments after `resources` → **article_post**
+
+**Important distinction:**
+- `article_index` (listing pages like `/blog`, `/resources`) → max **2** selected
+- `article_post` (individual posts with slugs) → max **5** selected
+
+These are different things. The scraper picks **2 blog listing pages** + up to **5 individual posts**. For posts, the LLM only returns FAQs if the post contains an explicit FAQ section (heading that says "FAQs" or "Frequently Asked Questions") — otherwise it returns `[]` and nothing is added.
 
 ---
 

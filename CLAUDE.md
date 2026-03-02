@@ -105,12 +105,12 @@ The static HTTP source is critical for sites like Aroflo (Webflow) where accordi
 
 ### Files
 
-- **`api.py`** — FastAPI lead magnet server. Async job pattern, Firecrawl discovery, MadCap Flare TOC parsing, rawHtml extraction, LLM extraction.
+- **`api.py`** — FastAPI lead magnet server. Async job pattern, Firecrawl discovery, MadCap Flare TOC parsing, three-source page fetching, LLM extraction.
 - **`extractor.py`** — LLM extraction logic. Supports anthropic, openai, gemini, openrouter providers.
 - **`scraper.py`** — Internal pipeline orchestration. Reads config, fetches pages, deduplicates, writes to Sheets.
-- **`sheets.py`** — Google Sheets I/O via gspread.
+- **`sheets.py`** — Google Sheets I/O via gspread. OAuth auth. `get_competitor_urls()` reads the source sheet.
 - **`config.json`** — LLM provider/model, sheet names, domain-level overrides.
-- **`steps.md`** — Human-readable explanation of the full flow including limits and constraints.
+- **`steps.md`** — Full step-by-step breakdown of the lead magnet pipeline including limits and constraints.
 
 ---
 
