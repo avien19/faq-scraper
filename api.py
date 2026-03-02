@@ -59,7 +59,6 @@ MAX_URLS_PER_DOMAIN = 12
 MAX_FAQ_PAGES = 3          # dedicated FAQ/help pages
 MAX_ARTICLE_INDEXES = 2    # blog/content INDEX pages (not posts)
 MAX_ARTICLE_POSTS = 5      # individual blog/article posts (LLM returns [] if no FAQ section)
-MAX_SERVICE_PAGES = 3      # short-path "other" pages (service/feature/pricing pages with embedded FAQs)
 MAX_PAGE_CHARS = 60_000    # truncate content before sending to LLM (Haiku handles this fine)
 
 MIN_CONTENT_LENGTH = 100   # chars — skip pages shorter than this
@@ -413,7 +412,6 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
     home_urls: list[str] = []
     article_index_urls: list[str] = []
     article_post_urls: list[str] = []
-    other_urls: list[str] = []
 
     for url in all_urls:
         cat = _categorize_url(url)
@@ -427,8 +425,6 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
             article_index_urls.append(url)
         elif cat == "article_post":
             article_post_urls.append(url)
-        else:
-            other_urls.append(url)
 
     # If the explicit input URL is a FAQ/help page, make sure it's included
     input_cat = _categorize_url(input_url)
@@ -462,18 +458,6 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
     remaining = max_total - len(selected)
     if remaining > 0:
         selected.extend(article_post_urls[:min(remaining, MAX_ARTICLE_POSTS)])
-
-    # Service/landing pages: short-path "other" pages (1–2 segments) that didn't match
-    # any known category. Many sites embed FAQ sections on product/feature/pricing pages
-    # without putting "faq" in the URL. Sorted by path depth so the most prominent pages
-    # (e.g. /gtm-engineering, /pricing) come first before deeply nested ones.
-    remaining = max_total - len(selected)
-    if remaining > 0:
-        service_candidates = sorted(
-            other_urls,
-            key=lambda u: len([s for s in urlparse(u).path.split("/") if s])
-        )
-        selected.extend(service_candidates[:min(remaining, MAX_SERVICE_PAGES)])
 
     # Deduplicate and cap
     seen: set[str] = set()
