@@ -62,7 +62,7 @@ Two separate pipelines:
 - `POST /scrape` — validates URLs, creates a job_id, starts background thread, returns `{ job_id, status: "processing" }` immediately
 - `GET /result/{job_id}` — returns `{ status: "processing" }` while running, or `{ status: "done", found, count, csv, pages_checked }` when complete
 - Background worker (`_run_scrape`):
-  1. **URL discovery** (`discover_faq_urls`): Firecrawl map → MadCap Flare TOC fallback → sitemap fallback → path probing
+  1. **URL discovery** (`discover_faq_urls`): Firecrawl map + sitemap (always both, merged) → MadCap Flare TOC fallback → common path probing
   2. **Categorise** each discovered URL: `faq` | `help` | `home` | `article_index` | `article_post` | `other`
   3. **Select** up to 12 pages in priority order: max 3 FAQ → 1 help → 1 home → 2 blog index → 5 blog posts → up to 3 other pages (slot-filler only, shortest path first)
   4. **Fetch** each page using three sources; uses the longest: Firecrawl Markdown, Firecrawl rawHtml (BS4-parsed), static HTTP HTML (BS4-parsed). Max 60,000 chars.

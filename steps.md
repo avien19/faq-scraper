@@ -240,6 +240,7 @@ Back in n8n:
 | FAQ/help pages per domain | Max **3** |
 | Blog index pages per domain | Max **2** |
 | Individual blog/article posts | Max **5** (LLM skips if no FAQ section) |
+| Other pages (service, pricing, etc.) | Max **3**, slot-filler only — only selected when priority pages leave open capacity |
 | Page content sent to LLM | Max **60,000 chars** per page |
 | Deduplication | Exact duplicate questions within the same job are dropped |
 
@@ -263,6 +264,7 @@ Back in n8n:
 
 ### What gets skipped
 - Blog/article posts beyond the 5-post limit
+- Other/service pages beyond the 3-page slot-filler cap
 - Pages shorter than 100 characters after fetching
 - Duplicate questions within the same job run
 - URLs that aren't on the same root domain as the submitted URL
