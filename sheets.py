@@ -1,18 +1,16 @@
+from urllib.parse import urlparse
+
 import gspread
-from google.oauth2.service_account import Credentials
 
 
 def _get_client():
-    """Authenticate via Service Account and return a gspread client.
-    Requires credentials.json (service account key file) in the project root.
-    No browser or user interaction needed — works on any server.
+    """Authenticate via OAuth and return a gspread client.
+    First run opens a browser for authorization. Token is cached in authorized_user.json.
     """
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive.readonly",
-    ]
-    creds = Credentials.from_service_account_file("credentials.json", scopes=scopes)
-    return gspread.authorize(creds)
+    return gspread.oauth(
+        credentials_filename="credentials.json",
+        authorized_user_filename="authorized_user.json",
+    )
 
 
 def get_existing_faqs(spreadsheet_name, worksheet_name):
@@ -23,6 +21,58 @@ def get_existing_faqs(spreadsheet_name, worksheet_name):
     sheet = client.open(spreadsheet_name).worksheet(worksheet_name)
     records = sheet.get_all_records()
     return records
+
+
+def get_competitor_urls(spreadsheet_name, worksheet_name):
+    """Read competitor URLs from the source Google Sheet.
+
+    Expects columns (by position, headers ignored):
+      A: Competitor homepage URL  (e.g. https://www.cloudcon.com/)
+      B: FAQ page URL             (optional)
+      C: Blog page URL            (optional)
+
+    Returns a list of dicts:
+      [{"name": "CloudCon", "homepage": "https://...", "faq_urls": [...], "blog_urls": [...]}]
+    """
+    client = _get_client()
+    sheet = client.open(spreadsheet_name).worksheet(worksheet_name)
+    rows = sheet.get_all_values()
+
+    competitors = []
+    for row in rows[1:]:  # skip header row
+        # Pad row to at least 3 columns
+        while len(row) < 3:
+            row.append("")
+
+        def _fix_url(u):
+            u = u.strip()
+            if u and not u.startswith("http"):
+                u = "https://" + u
+            return u
+
+        homepage = _fix_url(row[0])
+        faq_url  = _fix_url(row[1])
+        blog_url = _fix_url(row[2])
+
+        if not homepage:
+            continue
+
+        # Derive a display name from the domain (e.g. "cloudcon.com" → "CloudCon")
+        try:
+            netloc = urlparse(homepage).netloc
+            domain = netloc[4:] if netloc.startswith("www.") else netloc
+        except Exception:
+            domain = homepage
+        name = domain.split(".")[0].title()
+
+        competitors.append({
+            "name":      name,
+            "homepage":  homepage,
+            "faq_urls":  [faq_url]  if faq_url  else [],
+            "blog_urls": [blog_url] if blog_url else [],
+        })
+
+    return competitors
 
 
 def append_faqs(spreadsheet_name, worksheet_name, new_rows):

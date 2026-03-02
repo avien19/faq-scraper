@@ -1,6 +1,10 @@
 .env
 credentials.json
 authorized_user.json
+client_secret*.json
+workflow_current.json
+workflow_fix.json
+workflow_updated.json
 __pycache__/
 *.pyc
 .bmad-core/

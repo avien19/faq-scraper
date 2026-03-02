@@ -7,6 +7,16 @@
     "spreadsheet_name": "Competitor FAQs",
     "worksheet_name": "Sheet1"
   },
+  "source_sheet": {
+    "spreadsheet_name": "Kynection Competitor URLs",
+    "worksheet_name": "Sheet1"
+  },
+  "domain_settings": {
+    "aroflo.com":       { "force_browser": true, "use_proxy": true },
+    "tradifyhq.com":    { "force_browser": true, "use_proxy": true },
+    "procore.com":      { "use_proxy": true },
+    "safetyculture.com":{ "use_proxy": true }
+  },
   "request_delay_seconds": 2,
   "competitors": [
     {
