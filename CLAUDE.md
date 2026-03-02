@@ -63,9 +63,9 @@ Two separate pipelines:
 - `GET /result/{job_id}` — returns `{ status: "processing" }` while running, or `{ status: "done", found, count, csv, pages_checked }` when complete
 - Background worker (`_run_scrape`):
   1. **URL discovery** (`discover_faq_urls`): Firecrawl map → MadCap Flare TOC fallback → sitemap fallback → path probing
-  2. **Categorise** each discovered URL: `faq` > `help` > `home` > `article_index` (posts skipped)
-  3. **Select** up to 5 pages in priority order (max 3 FAQ/help, 1 home, 2 blog index)
-  4. **Fetch** each page via Firecrawl — requests both Markdown and rawHtml. BeautifulSoup parses rawHtml to include CSS-hidden content (e.g. collapsed accordions). Whichever is longer wins. Max 60,000 chars.
+  2. **Categorise** each discovered URL: `faq` > `help` > `home` > `article_index` > `article_post`
+  3. **Select** up to 12 pages in priority order (max 3 FAQ/help, 1 home, 2 blog index, 5 article posts)
+  4. **Fetch** each page using three sources; uses the longest: Firecrawl Markdown, Firecrawl rawHtml (BS4-parsed), static HTTP HTML (BS4-parsed). Max 60,000 chars.
   5. **Extract** FAQs via LLM (OpenRouter + Claude Haiku 4.5)
   6. **Deduplicate** by question text, build CSV, base64-encode it
 
@@ -81,14 +81,19 @@ Two separate pipelines:
 
 **MadCap Flare discovery** (`_map_urls_madcap_flare`): MadCap Flare help sites have an empty `<body>` and JS-only navigation — Firecrawl map only finds ~1 page. When a help subdomain returns <20 URLs from Firecrawl, the scraper fetches `/Data/HelpSystem.js` → follows the `Toc` reference → reads TOC chunk JS files → extracts all page URLs. This is how `helpguide.simprogroup.com` (767 pages, 10 FAQ pages) is fully discovered.
 
-**rawHtml for hidden content**: Firecrawl's markdown output strips CSS-hidden elements. Sites like Aroflo (Webflow) hide accordion answers via `display:none`. Requesting `rawHtml` and parsing with BeautifulSoup includes all DOM content regardless of CSS visibility. The longer result (markdown vs rawHtml text) is used.
+**Three-source content extraction** (`_fetch_page_markdown`): Every page fetch tries three sources and uses whichever produces the most text:
+1. **Firecrawl Markdown** — clean, structured; good for normal pages
+2. **Firecrawl rawHtml** — full rendered DOM parsed by BeautifulSoup (strips script/style/svg/header/footer but not nav)
+3. **Static HTTP HTML** — raw page source fetched directly via `requests`, parsed by BeautifulSoup
+
+The static HTTP source is critical for sites like Aroflo (Webflow) where accordion answers live inside `<nav class="w-dropdown-list">` elements with `display:none`. Firecrawl's headless browser executes JS which may strip invisible DOM nodes from the live DOM before returning `rawHtml`, so the static source (which always has the full HTML as the server sent it) wins and picks up the hidden answers.
 
 **URL categorisation** (`_categorize_url`):
 - `faq` — path contains faq/faqs/frequently-asked
 - `help` — path contains help/support/docs/kb/knowledge-base etc.
 - `home` — root path
 - `article_index` — blog keyword with no slug after it (e.g. `/blog`, `/resources/webinars`)
-- `article_post` — blog keyword + slug (2+ hyphens OR >20 chars) → **always skipped**
+- `article_post` — blog keyword + slug (2+ hyphens OR >20 chars) — included last (up to 5); LLM returns `[]` if post has no FAQ section
 
 **Slug detection** (`_is_slug`): A path segment is a post slug if it has `>=2 hyphens` OR `>20 chars`. Category names like `case-studies` have only 1 hyphen so they're treated as index pages.
 
@@ -123,7 +128,10 @@ Two separate pipelines:
 ## Deployment
 
 Server: Coolify at `aos4gsswcog44sc04okwc000.intelligentresources.app`
-n8n: `n8n.intelligentresources.app` — workflow ID `tBiQRf6dFVhD2DvN`
+n8n: `n8n.intelligentresources.app`
+- Lead magnet workflow: `tBiQRf6dFVhD2DvN`
+- Internal weekly workflow: `D38mHD7qqMo1A9yF` (every Monday 9am, reads Kynection Competitor URLs sheet, notifies `accounts@intelligentresourcing.co`)
+
 Lead magnet frontend: `faq.intelligentresources.app`
 
 To deploy: push to `master` → redeploy in Coolify (auto git pull + restart).
