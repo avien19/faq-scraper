@@ -463,9 +463,12 @@ def _fetch_page_markdown(url: str) -> tuple[str, str]:
     """
     Fetch a page and return (content, method).
     Uses Firecrawl if configured — requests both markdown and rawHtml.
-    rawHtml is parsed with BeautifulSoup which includes CSS-hidden content
-    (e.g. collapsed accordions where answers are display:none).
-    Falls back to HTTP + BeautifulSoup.
+    Also fetches raw static HTML directly via requests so that CSS-hidden
+    elements (e.g. Webflow accordion answers with display:none) are always
+    captured — Firecrawl's headless browser may strip invisible DOM nodes
+    from its rawHtml output after JS execution.
+    Uses whichever of the three sources (markdown, rawHtml text, static HTML text) is longest.
+    Falls back to HTTP + BeautifulSoup if Firecrawl is not configured.
     """
     if _FIRECRAWL_KEY:
         try:
@@ -476,19 +479,34 @@ def _fetch_page_markdown(url: str) -> tuple[str, str]:
             markdown = (result.markdown or "") if hasattr(result, "markdown") else ""
             raw_html = (result.rawHtml or "") if hasattr(result, "rawHtml") else ""
 
-            # Parse rawHtml to extract ALL text including CSS-hidden elements
-            # (e.g. Webflow/accordion answers hidden via display:none)
-            full_text = ""
+            # Parse Firecrawl rawHtml
+            firecrawl_text = ""
             if raw_html:
                 soup = BeautifulSoup(raw_html, "html.parser")
                 for tag in soup(["script", "style", "noscript", "svg", "header", "footer"]):
                     tag.decompose()
-                full_text = soup.get_text(separator="\n", strip=True)
+                firecrawl_text = soup.get_text(separator="\n", strip=True)
 
-            # Use whichever is longer — rawHtml text catches hidden accordion answers
-            content = full_text if len(full_text) > len(markdown) else markdown
+            # Also fetch the raw static HTML directly — guarantees we capture
+            # display:none content (e.g. Webflow accordion answers) that
+            # Firecrawl's browser rendering may strip from the live DOM.
+            static_text = ""
+            try:
+                r = _requests.get(url, headers=_HEADERS, timeout=20)
+                if r.ok:
+                    soup2 = BeautifulSoup(r.text, "html.parser")
+                    for tag in soup2(["script", "style", "noscript", "svg", "header", "footer"]):
+                        tag.decompose()
+                    static_text = soup2.get_text(separator="\n", strip=True)
+            except Exception:
+                pass
+
+            # Use the longest of all three — static HTML wins when accordion
+            # answers are in the DOM but hidden via CSS
+            candidates = {"markdown": markdown, "firecrawl-html": firecrawl_text, "static": static_text}
+            method, content = max(candidates.items(), key=lambda x: len(x[1]))
             if len(content) >= MIN_CONTENT_LENGTH:
-                method = "firecrawl-html" if content is full_text and full_text != markdown else "firecrawl"
+                print(f"  [FETCH] Using {method} ({len(content)} chars)")
                 return content[:MAX_PAGE_CHARS], method
             print(f"  [FIRECRAWL] Response too short ({len(content)} chars).")
         except Exception as e:
