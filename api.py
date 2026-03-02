@@ -492,63 +492,65 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
 def _fetch_page_markdown(url: str) -> tuple[str, str]:
     """
     Fetch a page and return (content, method).
-    Uses Firecrawl if configured — requests both markdown and rawHtml.
-    Also fetches raw static HTML directly via requests so that CSS-hidden
-    elements (e.g. Webflow accordion answers with display:none) are always
-    captured — Firecrawl's headless browser may strip invisible DOM nodes
-    from its rawHtml output after JS execution.
-    Uses whichever of the three sources (markdown, rawHtml text, static HTML text) is longest.
-    Falls back to HTTP + BeautifulSoup if Firecrawl is not configured.
+
+    Two strategies, whichever gives more text wins:
+      1. Static HTTP  — plain requests.get(), BeautifulSoup. Gets the raw HTML
+                        exactly as the server sent it before any JS runs.
+                        Catches CSS-hidden content (e.g. Webflow accordion answers
+                        with display:none that Firecrawl's browser strips out).
+      2. Firecrawl    — headless browser render, rawHtml parsed by BeautifulSoup.
+                        Catches JS-rendered content (React/Vue SPAs, lazy-loaded
+                        sections that aren't in the static HTML at all).
+
+    Firecrawl Markdown is intentionally not used — it's a stripped-down version
+    of the same render and would never produce more text than rawHtml.
     """
+    from bs4 import BeautifulSoup
+
+    def _parse_html(html: str) -> str:
+        soup = BeautifulSoup(html, "html.parser")
+        for tag in soup(["script", "style", "noscript", "svg", "header", "footer"]):
+            tag.decompose()
+        return soup.get_text(separator="\n", strip=True)
+
+    # Strategy 1: static HTTP
+    static_text = ""
+    try:
+        r = _requests.get(url, headers=_HEADERS, timeout=20)
+        if r.ok:
+            static_text = _parse_html(r.text)
+    except Exception:
+        pass
+
+    # Strategy 2: Firecrawl (browser-rendered)
+    firecrawl_text = ""
     if _FIRECRAWL_KEY:
         try:
             from firecrawl import FirecrawlApp
-            from bs4 import BeautifulSoup
             client = FirecrawlApp(api_key=_FIRECRAWL_KEY)
-            result = client.scrape(url, formats=["markdown", "rawHtml"])
-            markdown = (result.markdown or "") if hasattr(result, "markdown") else ""
+            result = client.scrape(url, formats=["rawHtml"])
             raw_html = (result.rawHtml or "") if hasattr(result, "rawHtml") else ""
-
-            # Parse Firecrawl rawHtml
-            firecrawl_text = ""
             if raw_html:
-                soup = BeautifulSoup(raw_html, "html.parser")
-                for tag in soup(["script", "style", "noscript", "svg", "header", "footer"]):
-                    tag.decompose()
-                firecrawl_text = soup.get_text(separator="\n", strip=True)
-
-            # Also fetch the raw static HTML directly — guarantees we capture
-            # display:none content (e.g. Webflow accordion answers) that
-            # Firecrawl's browser rendering may strip from the live DOM.
-            static_text = ""
-            try:
-                r = _requests.get(url, headers=_HEADERS, timeout=20)
-                if r.ok:
-                    soup2 = BeautifulSoup(r.text, "html.parser")
-                    for tag in soup2(["script", "style", "noscript", "svg", "header", "footer"]):
-                        tag.decompose()
-                    static_text = soup2.get_text(separator="\n", strip=True)
-            except Exception:
-                pass
-
-            # Use the longest of all three — static HTML wins when accordion
-            # answers are in the DOM but hidden via CSS
-            candidates = {"markdown": markdown, "firecrawl-html": firecrawl_text, "static": static_text}
-            method, content = max(candidates.items(), key=lambda x: len(x[1]))
-            if len(content) >= MIN_CONTENT_LENGTH:
-                print(f"  [FETCH] Using {method} ({len(content)} chars)")
-                return content[:MAX_PAGE_CHARS], method
-            print(f"  [FIRECRAWL] Response too short ({len(content)} chars).")
+                firecrawl_text = _parse_html(raw_html)
         except Exception as e:
-            print(f"  [FIRECRAWL] Scrape failed: {e}. Falling back to HTTP.")
+            print(f"  [FIRECRAWL] Scrape failed: {e}.")
 
-    # Fallback: plain HTTP + BeautifulSoup
-    from scraper import smart_fetch, clean_html
-    html, method = smart_fetch(url, force_browser=False, use_proxy=False)
-    if not html:
+    # Use whichever source gave more content
+    if not static_text and not firecrawl_text:
+        print(f"  [FETCH] Both sources returned empty.")
         return "", ""
-    text = clean_html(html, browser_rendered=(method == "browser"))
-    return text[:MAX_PAGE_CHARS], method or ""
+
+    if len(static_text) >= len(firecrawl_text):
+        content, method = static_text, "static"
+    else:
+        content, method = firecrawl_text, "firecrawl"
+
+    if len(content) >= MIN_CONTENT_LENGTH:
+        print(f"  [FETCH] Using {method} ({len(content)} chars)")
+        return content[:MAX_PAGE_CHARS], method
+
+    print(f"  [FETCH] Content too short ({len(content)} chars).")
+    return "", ""
 
 
 # ---------------------------------------------------------------------------
