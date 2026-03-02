@@ -94,6 +94,7 @@ The static HTTP source is critical for sites like Aroflo (Webflow) where accordi
 - `home` — root path
 - `article_index` — blog keyword with no slug after it (e.g. `/blog`, `/resources/webinars`)
 - `article_post` — blog keyword + slug (2+ hyphens OR >20 chars) — included last (up to 5); LLM returns `[]` if post has no FAQ section
+- `other` — everything else (service pages, feature pages, pricing). Collected separately and included as the final fallback (up to 3), sorted shortest path first so main product pages (`/pricing`, `/gtm-engineering`) are preferred over deeply nested ones
 
 **Slug detection** (`_is_slug`): A path segment is a post slug if it has `>=2 hyphens` OR `>20 chars`. Category names like `case-studies` have only 1 hyphen so they're treated as index pages.
 

@@ -113,13 +113,16 @@ These are different things. The scraper picks **2 blog listing pages** + up to *
 
 Pages are selected in strict priority order, up to a maximum of **12 pages per domain**:
 
-| Priority | Type | Max |
-|----------|------|-----|
-| 1st | Dedicated FAQ pages | 3 |
-| 2nd | Help/support pages | 1 |
-| 3rd | Homepage | 1 |
-| 4th | Blog/content index pages | 2 |
-| 5th | Individual blog/article posts | 5 |
+| Priority | Type | Max | Why |
+|----------|------|-----|-----|
+| 1st | Dedicated FAQ pages (`/faq`, `/faqs`, etc.) | 3 | Most likely to have Q&A pairs |
+| 2nd | Help/support pages (`/help`, `/docs`, `/kb`, etc.) | 1 | Secondary FAQ source |
+| 3rd | Homepage | 1 | Often has an FAQ section |
+| 4th | Blog/content index pages (`/blog`, `/resources`) | 2 | Listing pages, not individual posts |
+| 5th | Individual blog/article posts (slug in path) | 5 | LLM skips if no FAQ section |
+| 6th | Service/feature/pricing pages (everything else) | 3 | Many sites embed FAQs here without calling them `/faq` |
+
+**Priority 6 — why it exists:** Many sites (especially SaaS) embed FAQ sections on product pages like `/gtm-engineering`, `/pricing`, or `/clay-workflow-expert` without ever using `/faq` in the URL. These were previously categorised as `other` and silently dropped. Now they are collected and included last (up to 3), sorted shortest path first so top-level service pages are preferred over deep subpages.
 
 If the user submitted a specific FAQ or help URL (e.g. `https://aroflo.com/resources/faq`), that URL is always included first regardless of discovery.
 
@@ -212,6 +215,7 @@ Back in n8n:
 | FAQ/help pages per domain | Max **3** |
 | Blog index pages per domain | Max **2** |
 | Individual blog/article posts | Max **5** (LLM skips if no FAQ section) |
+| Service/feature/pricing pages | Max **3** (LLM skips if no FAQ section) |
 | Page content sent to LLM | Max **60,000 chars** per page |
 | Deduplication | Exact duplicate questions within the same job are dropped |
 
