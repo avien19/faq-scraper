@@ -145,9 +145,9 @@ Pages are selected in strict priority order, up to a maximum of **12 pages per d
 | 3rd | Homepage | 1 | Often has an FAQ section |
 | 4th | Blog/content index pages (`/blog`, `/resources`) | 2 | Listing pages, not individual posts |
 | 5th | Individual blog/article posts (slug in path) | 5 | LLM skips if no FAQ section |
-| 6th | Everything else — slot-filler only | up to 3 | Fills remaining capacity when priority pages don't use all 12 slots |
+| 6th | Everything else — slot-filler | all remaining slots | Fills remaining capacity when priority pages don't use all 12 slots |
 
-**How priority 6 works:** `other` pages (service, pricing, feature pages — anything not matching the above categories) are sorted by path depth, shortest first, so top-level pages like `/pricing` or `/features` come before deep subpages. They are only selected if there are still open slots after all priority pages are chosen. A site with 3 FAQ + 1 help + 1 home + 2 blog index + 5 blog posts uses all 12 slots — no `other` pages get in. A site with no FAQ or help pages at all leaves 7 open slots — blog posts and then `other` pages fill them. This ensures we never waste capacity on sites that don't follow `/faq` naming conventions.
+**How priority 6 works:** `other` pages (service, pricing, feature pages — anything not matching the above categories) are sorted by path depth, shortest first, so top-level pages like `/pricing` or `/features` come before deep subpages like `/gtm-engineering/pricing`. They fill **all** remaining slots after priority pages — there is no separate inner cap. A site with 3 FAQ + 1 help + 1 home + 2 blog index + 5 blog posts uses all 12 slots — no `other` pages get in. A site with no FAQ or help pages at all leaves 7 open slots — blog posts fill 5, then `other` pages fill the last 2. This ensures service and pricing pages (which often have FAQ sections) are always checked when there's capacity.
 
 If the user submitted a specific FAQ or help URL (e.g. `https://aroflo.com/resources/faq`), that URL is always included first regardless of discovery.
 
@@ -237,7 +237,7 @@ Back in n8n:
 | FAQ/help pages per domain | Max **3** |
 | Blog index pages per domain | Max **2** |
 | Individual blog/article posts | Max **5** (LLM skips if no FAQ section) |
-| Other pages (service, pricing, etc.) | Max **3**, slot-filler only — only selected when priority pages leave open capacity |
+| Other pages (service, pricing, etc.) | All remaining slots — fill everything priority pages don't use (max is 12 total) |
 | Page content sent to LLM | Max **60,000 chars** per page |
 | Deduplication | Exact duplicate questions within the same job are dropped |
 
@@ -261,7 +261,7 @@ Back in n8n:
 
 ### What gets skipped
 - Blog/article posts beyond the 5-post limit
-- Other/service pages beyond the 3-page slot-filler cap
+- Other/service pages beyond the remaining capacity (the 12-page total is the only limit)
 - Pages shorter than 100 characters after fetching
 - Duplicate questions within the same job run
 - URLs that aren't on the same root domain as the submitted URL
