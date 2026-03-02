@@ -1,14 +1,34 @@
 # How Everything Works
 
-## The User Journey
+## The Two Pipelines
+
+### Lead Magnet (public-facing)
 
 1. User goes to `faq.intelligentresources.app` → enters competitor URLs + their email → submits
 2. The form POSTs to the n8n webhook
 3. ~2–5 mins later they get an email with a CSV of competitor FAQs attached
 
+### Internal Weekly Pipeline
+
+Runs automatically every **Monday at 9am** via n8n workflow `D38mHD7qqMo1A9yF`:
+
+```
+Schedule trigger
+  → Read "Kynection Competitor URLs" sheet (columns: Homepage | FAQ URL | Blog URL)
+  → Build comma-separated URL list
+  → POST /scrape with { no_discovery: true }   ← scrapes given URLs directly, no Firecrawl map
+  → Poll every 30s until done
+  → Read "Competitor FAQs" sheet
+  → Deduplicate by competitor::question key
+  → Append new rows to "Competitor FAQs" sheet
+  → Send notification email to accounts@intelligentresourcing.co
+```
+
+`no_discovery: true` skips the Firecrawl URL discovery entirely and scrapes the exact URLs from the sheet. This is faster and more controlled — the URLs are already curated in the source sheet.
+
 ---
 
-## n8n Workflow (`tBiQRf6dFVhD2DvN`)
+## Lead Magnet n8n Workflow (`tBiQRf6dFVhD2DvN`)
 
 ```
 Webhook → Prepare Variables → Start Scrape Job (POST /scrape)
@@ -21,7 +41,7 @@ Webhook → Prepare Variables → Start Scrape Job (POST /scrape)
 
 ---
 
-## Coolify Server (`api.py`) — Step by Step
+## Lead Magnet — Coolify Server (`api.py`) — Step by Step
 
 ### Step 1 — Receive the request
 
@@ -83,15 +103,16 @@ Any path that returns a non-404 response is added to the list.
 
 ### Step 4 — Categorise every discovered URL
 
-Each URL is categorised into one of five types:
+Each URL is categorised into one of six types:
 
 | Category | How it's detected | Example |
 |----------|-------------------|---------|
 | `faq` | Path contains `faq`, `faqs`, or `frequently-asked` | `/resources/faq`, `/support/faqs` |
 | `help` | Path contains `help`, `support`, `docs`, `kb`, `knowledge-base`, etc. | `/help-center`, `/docs` |
 | `home` | Root path only (no segments) | `example.com/` |
-| `article_index` | Path has a blog keyword with **no slug** after it — this is a listing/category page | `/blog`, `/resources/guides`, `/blog/case-studies` |
-| `article_post` | Path has a blog keyword followed by a **slug** — this is an individual post | `/blog/how-to-manage-field-service` |
+| `article_index` | Path has a blog keyword with **no slug** after it — listing/category page | `/blog`, `/resources/guides`, `/blog/case-studies` |
+| `article_post` | Path has a blog keyword followed by a **slug** — individual post | `/blog/how-to-manage-field-service` |
+| `other` | Anything not matched above — service, feature, pricing pages | `/gtm-engineering`, `/pricing`, `/clay-workflow-expert` |
 
 **How slugs are detected:** a path segment is a post slug if it has **2 or more hyphens** OR is **longer than 20 characters**. Short single-hyphen segments are category names, not posts.
 
@@ -156,9 +177,9 @@ The page text is sent to **Claude Haiku 4.5** via OpenRouter with a prompt that 
 
 - For **dedicated FAQ pages**: extract every Q&A pair found
 - For **blog posts**: only extract content from explicit FAQ sections (e.g. a heading that says "FAQs" or "Frequently Asked Questions"). If no FAQ section exists, return `[]`
-- Return only valid JSON: `[{"question": "...", "answer": "..."}, ...]`
+- For **service/landing pages** (`other` category): extract any explicit Q&A pairs found anywhere on the page — no section heading required. If the page has no Q&A structure at all, return `[]`
 - Keep answers under 500 characters
-- No markdown fencing, no explanation — just the JSON
+- Return only valid JSON: `[{"question": "...", "answer": "..."}, ...]` — no markdown fencing, no explanation
 
 If the LLM returns non-JSON or an empty array, zero FAQs are added for that page.
 
@@ -239,6 +260,7 @@ Back in n8n:
 
 ### What gets skipped
 - Blog/article posts beyond the 5-post limit
+- Service/other pages beyond the 3-page limit
 - Pages shorter than 100 characters after fetching
 - Duplicate questions within the same job run
 - URLs that aren't on the same root domain as the submitted URL
