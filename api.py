@@ -59,6 +59,7 @@ MAX_URLS_PER_DOMAIN = 12
 MAX_FAQ_PAGES = 3          # dedicated FAQ/help pages
 MAX_ARTICLE_INDEXES = 2    # blog/content INDEX pages (not posts)
 MAX_ARTICLE_POSTS = 5      # individual blog/article posts (LLM returns [] if no FAQ section)
+MAX_OTHER_PAGES = 3        # non-categorised pages used only to fill remaining slots
 MAX_PAGE_CHARS = 60_000    # truncate content before sending to LLM (Haiku handles this fine)
 
 MIN_CONTENT_LENGTH = 100   # chars — skip pages shorter than this
@@ -412,6 +413,7 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
     home_urls: list[str] = []
     article_index_urls: list[str] = []
     article_post_urls: list[str] = []
+    other_urls: list[str] = []
 
     for url in all_urls:
         cat = _categorize_url(url)
@@ -425,6 +427,8 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
             article_index_urls.append(url)
         elif cat == "article_post":
             article_post_urls.append(url)
+        else:
+            other_urls.append(url)
 
     # If the explicit input URL is a FAQ/help page, make sure it's included
     input_cat = _categorize_url(input_url)
@@ -454,10 +458,22 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
     if remaining > 0:
         selected.extend(article_index_urls[:min(remaining, MAX_ARTICLE_INDEXES)])
 
-    # Blog/article posts are included last — LLM returns [] if a post has no FAQ section
+    # Blog/article posts — LLM returns [] if a post has no FAQ section
     remaining = max_total - len(selected)
     if remaining > 0:
         selected.extend(article_post_urls[:min(remaining, MAX_ARTICLE_POSTS)])
+
+    # Fill any remaining slots with the shortest-path "other" pages.
+    # These only appear when priority pages don't use all 12 slots — e.g. a site
+    # with no /faq or /help pages leaves room that would otherwise go to waste.
+    # Shortest path first so top-level pages (/pricing, /about) come before deep subpages.
+    remaining = max_total - len(selected)
+    if remaining > 0 and other_urls:
+        other_sorted = sorted(
+            other_urls,
+            key=lambda u: len([s for s in urlparse(u).path.split("/") if s])
+        )
+        selected.extend(other_sorted[:min(remaining, MAX_OTHER_PAGES)])
 
     # Deduplicate and cap
     seen: set[str] = set()
