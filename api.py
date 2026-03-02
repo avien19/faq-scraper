@@ -55,9 +55,10 @@ _jobs: dict = {}           # job_id → {"status": "processing"|"done"|"error", 
 _executor = ThreadPoolExecutor(max_workers=4)
 
 # Caps
-MAX_URLS_PER_DOMAIN = 5
+MAX_URLS_PER_DOMAIN = 7
 MAX_FAQ_PAGES = 3          # dedicated FAQ/help pages
 MAX_ARTICLE_INDEXES = 2    # blog/content INDEX pages (not posts)
+MAX_ARTICLE_POSTS = 2      # individual blog/article posts (LLM returns [] if no FAQ section)
 MAX_PAGE_CHARS = 60_000    # truncate content before sending to LLM (Haiku handles this fine)
 
 MIN_CONTENT_LENGTH = 100   # chars — skip pages shorter than this
@@ -366,8 +367,10 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
       1. Dedicated FAQ pages       (up to MAX_FAQ_PAGES)
       2. Dedicated help pages      (up to 1)
       3. Homepage                  (1)
-      4. Blog/content INDEX pages  (up to MAX_ARTICLE_INDEXES, fill remaining)
-         Individual post URLs are always skipped.
+      4. Blog/content INDEX pages  (up to MAX_ARTICLE_INDEXES)
+      5. Individual blog/article posts (up to MAX_ARTICLE_POSTS, fill remaining slots)
+         Posts are included because they may contain FAQ sections. The LLM returns []
+         if a post has no FAQ content, so there is no cost beyond the fetch.
 
     Discovery: Firecrawl map → sitemap fallback → common path probing.
     """
@@ -393,6 +396,7 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
     help_urls: list[str] = []
     home_urls: list[str] = []
     article_index_urls: list[str] = []
+    article_post_urls: list[str] = []
 
     for url in all_urls:
         cat = _categorize_url(url)
@@ -404,7 +408,8 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
             home_urls.append(url)
         elif cat == "article_index":
             article_index_urls.append(url)
-        # article_post → silently dropped
+        elif cat == "article_post":
+            article_post_urls.append(url)
 
     # If the explicit input URL is a FAQ/help page, make sure it's included
     input_cat = _categorize_url(input_url)
@@ -433,6 +438,11 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
     remaining = max_total - len(selected)
     if remaining > 0:
         selected.extend(article_index_urls[:min(remaining, MAX_ARTICLE_INDEXES)])
+
+    # Blog/article posts are included last — LLM returns [] if a post has no FAQ section
+    remaining = max_total - len(selected)
+    if remaining > 0:
+        selected.extend(article_post_urls[:min(remaining, MAX_ARTICLE_POSTS)])
 
     # Deduplicate and cap
     seen: set[str] = set()

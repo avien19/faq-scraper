@@ -30,7 +30,7 @@ Webhook → Prepare Variables → Start Scrape Job (POST /scrape)
 
 1. **Firecrawl map** — crawls the whole site to find all URLs, including help subdomains (e.g. `helpguide.simprogroup.com`). For MadCap Flare help sites (JS-only navigation, no sitemap), reads TOC chunk files directly from `/Data/Tocs/` to discover all pages.
 2. **Categorise URLs** — faq > help > home > blog index (individual posts skipped)
-3. **Select up to 5 pages** in that priority order (up to 3 FAQ/help pages + homepage + up to 2 blog index pages)
+3. **Select up to 7 pages** in priority order: FAQ pages (up to 3) → help page → homepage → blog index pages (up to 2) → individual blog/article posts (up to 2)
 4. **Fetch each page** via Firecrawl — requests both Markdown and raw HTML. Raw HTML is parsed with BeautifulSoup to include CSS-hidden content (e.g. collapsed accordions). Whichever is longer wins. Max 60k chars per page.
 5. **Extract FAQs** with Claude Haiku 4.5 via OpenRouter
 6. **Return** base64-encoded CSV with columns: Competitor, Source URL, Question, Answer, Date
@@ -43,9 +43,10 @@ Webhook → Prepare Variables → Start Scrape Job (POST /scrape)
 | What | Limit |
 |------|-------|
 | URLs per submission | No hard limit, but each domain takes ~1–3 min |
-| Pages scraped per domain | Max **5 pages** |
+| Pages scraped per domain | Max **7 pages** |
 | FAQ/help pages per domain | Max **3** |
 | Blog index pages per domain | Max **2** |
+| Individual blog/article posts | Max **2** (LLM skips them if no FAQ section found) |
 | Page content sent to LLM | Max **60,000 chars** per page |
 | Deduplication | By question text — exact duplicates within the same job are dropped |
 
@@ -68,7 +69,7 @@ Webhook → Prepare Variables → Start Scrape Job (POST /scrape)
 | Page under 100 chars after fetch | Skipped |
 
 ### What gets skipped
-- Individual blog/article posts (only the listing page is included)
+- Individual blog/article posts beyond the 2-post limit
 - Pages shorter than 100 characters after fetching
 - Duplicate questions within the same job run
 - URLs that aren't on the same root domain as the submitted URL
