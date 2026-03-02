@@ -481,7 +481,7 @@ def _fetch_page_markdown(url: str) -> tuple[str, str]:
             full_text = ""
             if raw_html:
                 soup = BeautifulSoup(raw_html, "html.parser")
-                for tag in soup(["script", "style", "noscript", "svg", "header", "footer", "nav"]):
+                for tag in soup(["script", "style", "noscript", "svg", "header", "footer"]):
                     tag.decompose()
                 full_text = soup.get_text(separator="\n", strip=True)
 
