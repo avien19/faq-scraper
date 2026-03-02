@@ -155,23 +155,20 @@ If the user submitted a specific FAQ or help URL (e.g. `https://aroflo.com/resou
 
 ### Step 6 — Fetch each page
 
-Each selected URL is fetched using **three sources simultaneously** and the longest result is used:
+Each selected URL is fetched two ways and whichever gives more text is used:
 
 | Source | How | What it captures |
 |--------|-----|-----------------|
-| **Firecrawl Markdown** | Firecrawl renders the page with a headless browser, returns clean structured Markdown | Normal page content, well-formatted |
-| **Firecrawl rawHtml** | Same headless browser render; full HTML parsed by BeautifulSoup (strips script/style/svg/header/footer, keeps nav) | JS-rendered content; but may miss hidden elements stripped by the browser |
-| **Static HTTP HTML** | Plain `requests.get()` of the URL, parsed by BeautifulSoup | The page source exactly as the server sent it — **always includes all DOM elements** regardless of CSS visibility |
+| **Static HTTP** | Plain `requests.get()` + BeautifulSoup | Raw HTML exactly as the server sent it — **always includes CSS-hidden elements** like accordion answers (`display:none`) |
+| **Firecrawl rawHtml** | Headless browser render + BeautifulSoup | JS-rendered content — catches pages where content is injected by JavaScript (React/Vue SPAs, lazy-loaded sections) |
 
-**Why three sources?** Firecrawl's headless browser executes JavaScript which can strip `display:none` elements from the live DOM before returning `rawHtml`. Sites like Aroflo (Webflow) store accordion answers inside `<nav class="w-dropdown-list">` elements hidden by `display:none`. The static HTTP source fetches the raw server HTML where all these elements are always present, regardless of how the browser would render them. The static source consistently wins for accordion-heavy FAQ pages.
+**Why two and not one?** These two sources cover opposite failure modes. Static HTTP misses content that only exists after JavaScript runs. Firecrawl's browser can strip CSS-hidden elements from the live DOM (e.g. Webflow accordion answers in `<nav display:none>`) because JS collapses them before Firecrawl captures the HTML. Using both and picking the longer result means neither failure mode can win.
 
-The server logs which source won: `[FETCH] Using static (N chars)` / `[FETCH] Using markdown (N chars)`.
+Firecrawl Markdown is not used — it's a stripped-down version of the same browser render and always produces less text than rawHtml.
 
-Content is capped at **60,000 characters** before being sent to the LLM.
+The server logs which source won: `[FETCH] Using static (N chars)` or `[FETCH] Using firecrawl (N chars)`.
 
-If Firecrawl fails entirely for a page, it falls back to plain HTTP + BeautifulSoup only.
-
-Pages shorter than **100 characters** after fetching are skipped.
+Content is capped at **60,000 characters** before being sent to the LLM. Pages shorter than **100 characters** are skipped.
 
 ---
 
@@ -257,7 +254,7 @@ Back in n8n:
 ### Content extraction
 | Scenario | Behaviour |
 |----------|-----------|
-| Normal page | Longest of: Firecrawl Markdown, Firecrawl rawHtml text, static HTTP text |
+| Normal page | Longest of: static HTTP text vs Firecrawl rawHtml text |
 | Accordion / collapsed answers (CSS `display:none`) | Static HTTP HTML wins — contains hidden elements that Firecrawl's browser strips |
 | JavaScript-rendered page (content not in static HTML) | Firecrawl markdown or rawHtml wins — Firecrawl renders JS before extracting |
 | Page under 100 chars after fetch | Skipped |

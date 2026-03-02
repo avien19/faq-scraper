@@ -65,7 +65,7 @@ Two separate pipelines:
   1. **URL discovery** (`discover_faq_urls`): Firecrawl map + sitemap (always both, merged) → MadCap Flare TOC fallback → common path probing
   2. **Categorise** each discovered URL: `faq` | `help` | `home` | `article_index` | `article_post` | `other`
   3. **Select** up to 12 pages in priority order: max 3 FAQ → 1 help → 1 home → 2 blog index → 5 blog posts → up to 3 other pages (slot-filler only, shortest path first)
-  4. **Fetch** each page using three sources; uses the longest: Firecrawl Markdown, Firecrawl rawHtml (BS4-parsed), static HTTP HTML (BS4-parsed). Max 60,000 chars.
+  4. **Fetch** each page using two sources; uses the longest: static HTTP HTML (BS4-parsed) vs Firecrawl rawHtml (BS4-parsed). Max 60,000 chars.
   5. **Extract** FAQs via LLM (OpenRouter + Claude Haiku 4.5). FAQ pages → extract all Q&As. Blog posts & service pages → extract only explicit Q&A pairs; skip if none found.
   6. **Deduplicate** by question text, build CSV, base64-encode it
 
@@ -81,12 +81,11 @@ Two separate pipelines:
 
 **MadCap Flare discovery** (`_map_urls_madcap_flare`): MadCap Flare help sites have an empty `<body>` and JS-only navigation — Firecrawl map only finds ~1 page. When a help subdomain returns <20 URLs from Firecrawl, the scraper fetches `/Data/HelpSystem.js` → follows the `Toc` reference → reads TOC chunk JS files → extracts all page URLs. This is how `helpguide.simprogroup.com` (767 pages, 10 FAQ pages) is fully discovered.
 
-**Three-source content extraction** (`_fetch_page_markdown`): Every page fetch tries three sources and uses whichever produces the most text:
-1. **Firecrawl Markdown** — clean, structured; good for normal pages
-2. **Firecrawl rawHtml** — full rendered DOM parsed by BeautifulSoup (strips script/style/svg/header/footer but not nav)
-3. **Static HTTP HTML** — raw page source fetched directly via `requests`, parsed by BeautifulSoup
+**Two-source content extraction** (`_fetch_page_markdown`): Every page is fetched two ways and whichever produces more text is used:
+1. **Static HTTP** — plain `requests.get()` parsed by BeautifulSoup. Gets the raw HTML exactly as the server sent it before any JS runs. Catches CSS-hidden content like Webflow accordion answers (`display:none`) that Firecrawl's browser strips from the live DOM.
+2. **Firecrawl rawHtml** — headless browser render parsed by BeautifulSoup. Catches JS-rendered/lazy-loaded content that isn't present in the static HTML at all (React/Vue SPAs, etc.).
 
-The static HTTP source is critical for sites like Aroflo (Webflow) where accordion answers live inside `<nav class="w-dropdown-list">` elements with `display:none`. Firecrawl's headless browser executes JS which may strip invisible DOM nodes from the live DOM before returning `rawHtml`, so the static source (which always has the full HTML as the server sent it) wins and picks up the hidden answers.
+Firecrawl Markdown is intentionally not used — it's a stripped-down version of the same browser render and would never produce more text than rawHtml.
 
 **URL categorisation** (`_categorize_url`):
 - `faq` — path contains faq/faqs/frequently-asked
