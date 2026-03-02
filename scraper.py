@@ -4,13 +4,14 @@ import re
 import sys
 import time
 from datetime import date
+from urllib.parse import urlparse as _urlparse
 
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 from extractor import extract_faqs
-from sheets import get_existing_faqs, append_faqs
+from sheets import get_existing_faqs, append_faqs, get_competitor_urls
 
 load_dotenv()
 
@@ -191,13 +192,13 @@ def smart_fetch(url, force_browser=False, use_proxy=False):
 def clean_html(raw_html, browser_rendered=False):
     """Strip non-content tags and extract readable text from HTML."""
     soup = BeautifulSoup(raw_html, "html.parser")
-    # Always strip these
+    # Strip non-content tags. Note: <nav> is intentionally NOT stripped even for
+    # HTTP-fetched pages — some sites (e.g. Aroflo/Webflow) put FAQ answers inside
+    # <nav class="w-dropdown-list"> which is hidden by CSS but present in the DOM.
+    # The LLM handles any navigation noise cleanly.
     strip_tags = ["script", "style", "noscript", "svg"]
     if not browser_rendered:
-        # For HTTP-fetched pages, also strip nav/footer/header to reduce noise
-        strip_tags += ["nav", "footer", "header"]
-    # For browser-rendered pages, keep nav/footer/header since FAQ content
-    # can be nested inside them on some sites
+        strip_tags += ["footer", "header"]
     for tag in soup(strip_tags):
         tag.decompose()
     text = soup.get_text(separator="\n", strip=True)
@@ -223,6 +224,7 @@ def main():
     sheet_name = config["google_sheet"]["spreadsheet_name"]
     worksheet_name = config["google_sheet"]["worksheet_name"]
     delay = config.get("request_delay_seconds", 2)
+    domain_settings = config.get("domain_settings", {})
 
     # Load existing FAQs for dedup
     if not dry_run:
@@ -240,11 +242,30 @@ def main():
 
     print(f"Loaded {len(existing_keys)} existing FAQs from sheet.\n")
 
+    # Load competitors from the live source sheet
+    source_cfg = config.get("source_sheet", {})
+    if source_cfg.get("spreadsheet_name"):
+        print(f"Loading competitors from '{source_cfg['spreadsheet_name']}'...")
+        competitors = get_competitor_urls(
+            source_cfg["spreadsheet_name"],
+            source_cfg.get("worksheet_name", "Sheet1"),
+        )
+        print(f"Found {len(competitors)} competitor(s) in source sheet.\n")
+    else:
+        competitors = config.get("competitors", [])
+
     all_new_rows = []
 
-    for competitor in config["competitors"]:
+    for competitor in competitors:
         name = competitor["name"]
-        urls = competitor.get("faq_urls", []) + competitor.get("blog_urls", [])
+        faq_urls  = competitor.get("faq_urls", [])
+        blog_urls = competitor.get("blog_urls", [])
+        homepage  = competitor.get("homepage", "")
+
+        # If no FAQ/blog URLs, fall back to the homepage itself
+        urls = faq_urls + blog_urls
+        if not urls and homepage:
+            urls = [homepage]
 
         if not urls:
             print(f"[{name}] No URLs configured, skipping.")
@@ -252,8 +273,21 @@ def main():
 
         print(f"[{name}] Processing {len(urls)} URL(s)...")
 
+        # Apply per-competitor flags first, then domain_settings overrides
         force_browser = competitor.get("force_browser", False)
-        use_proxy = competitor.get("use_proxy", False)
+        use_proxy     = competitor.get("use_proxy", False)
+
+        # Check domain_settings for any URL belonging to this competitor
+        for url in urls:
+            try:
+                domain = _urlparse(url).netloc.lstrip("www.")
+            except Exception:
+                domain = ""
+            ds = domain_settings.get(domain, {})
+            if ds.get("force_browser"):
+                force_browser = True
+            if ds.get("use_proxy"):
+                use_proxy = True
 
         for url in urls:
             print(f"  Fetching: {url}")
