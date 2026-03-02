@@ -94,7 +94,8 @@ _BLOG_KW = {
 
 
 class ScrapeRequest(BaseModel):
-    urls: str  # Comma-separated URLs
+    urls: str               # Comma-separated URLs
+    no_discovery: bool = False  # If True, scrape given URLs directly (no Firecrawl map)
 
 
 @app.get("/health")
@@ -522,8 +523,12 @@ def health():
     return {"status": "ok"}
 
 
-def _run_scrape(job_id: str, urls_raw: str) -> None:
-    """Background worker — runs in a thread pool, stores result in _jobs."""
+def _run_scrape(job_id: str, urls_raw: str, no_discovery: bool = False) -> None:
+    """Background worker — runs in a thread pool, stores result in _jobs.
+
+    no_discovery=True: scrape the submitted URLs directly without Firecrawl map.
+    Used by the internal weekly pipeline where URLs are pre-configured per competitor.
+    """
     try:
         from extractor import extract_faqs
 
@@ -538,10 +543,14 @@ def _run_scrape(job_id: str, urls_raw: str) -> None:
 
         for input_url in input_urls:
             name = _guess_name(input_url)
-            print(f"\n[job:{job_id[:8]}] [{name}] Discovering FAQ pages from {input_url}...")
 
-            urls_to_scrape = discover_faq_urls(input_url)
-            print(f"[job:{job_id[:8]}] [{name}] Selected: {urls_to_scrape}")
+            if no_discovery:
+                urls_to_scrape = [input_url]
+                print(f"\n[job:{job_id[:8]}] [{name}] Direct scrape (no discovery): {input_url}")
+            else:
+                print(f"\n[job:{job_id[:8]}] [{name}] Discovering FAQ pages from {input_url}...")
+                urls_to_scrape = discover_faq_urls(input_url)
+                print(f"[job:{job_id[:8]}] [{name}] Selected: {urls_to_scrape}")
 
             for url in urls_to_scrape:
                 pages_checked.append(url)
@@ -591,6 +600,10 @@ def _run_scrape(job_id: str, urls_raw: str) -> None:
                 "found": True,
                 "count": len(rows),
                 "csv": csv_b64,
+                "faqs": [
+                    {"competitor": r[0], "source_url": r[1], "question": r[2], "answer": r[3], "date": r[4]}
+                    for r in rows
+                ],
                 "pages_checked": pages_checked,
             },
         }
@@ -619,7 +632,7 @@ def scrape(req: ScrapeRequest):
 
     job_id = str(uuid.uuid4())
     _jobs[job_id] = {"status": "processing", "result": None}
-    _executor.submit(_run_scrape, job_id, req.urls)
+    _executor.submit(_run_scrape, job_id, req.urls, req.no_discovery)
 
     return {"job_id": job_id, "status": "processing"}
 
