@@ -56,7 +56,7 @@ _executor = ThreadPoolExecutor(max_workers=4)
 
 # Caps
 MAX_URLS_PER_DOMAIN = 5
-MAX_FAQ_PAGES = 2          # dedicated FAQ/help pages
+MAX_FAQ_PAGES = 3          # dedicated FAQ/help pages
 MAX_ARTICLE_INDEXES = 2    # blog/content INDEX pages (not posts)
 MAX_PAGE_CHARS = 60_000    # truncate content before sending to LLM (Haiku handles this fine)
 
@@ -214,12 +214,21 @@ def _map_urls_firecrawl(base_url: str) -> list[str]:
     # Re-map each help subdomain to get its full URL set
     for help_base in help_bases:
         print(f"  [MAP] Detected help subdomain — mapping {help_base}...")
+        sub_urls: list[str] = []
         try:
             sub_urls = _firecrawl_map(help_base, limit=300, include_subdomains=False)
             print(f"  [MAP] {len(sub_urls)} additional URLs from {help_base}.")
-            all_urls.extend(sub_urls)
         except Exception as e:
             print(f"  [MAP] Subdomain map failed ({e}).")
+
+        # MadCap Flare sites have JS-only navigation — Firecrawl map misses most pages.
+        # Fall back to reading the TOC chunk files directly.
+        if len(sub_urls) < 20:
+            madcap_urls = _map_urls_madcap_flare(help_base)
+            if madcap_urls:
+                sub_urls.extend(madcap_urls)
+
+        all_urls.extend(sub_urls)
 
     print(f"  [MAP] {len(all_urls)} total URLs discovered.")
     return all_urls
@@ -287,6 +296,49 @@ def _parse_sitemap_xml(content: bytes) -> tuple[list[str], list[str]]:
     except ET.ParseError:
         pass
     return pages, indexes
+
+
+def _map_urls_madcap_flare(base_url: str) -> list[str]:
+    """
+    Discover page URLs from a MadCap Flare WebHelp site via its TOC JS chunk files.
+    MadCap Flare sites have no sitemap and a JS-only nav, so Firecrawl map misses most pages.
+    Discovery path: /Data/HelpSystem.js → /Data/Tocs/*.js → chunk files → all page URLs.
+    """
+    try:
+        r = _requests.get(f"{base_url}/Data/HelpSystem.js", headers=_HEADERS, timeout=8)
+        if not r.ok:
+            return []
+        match = re.search(r'Toc\s*=\s*"([^"]+)"', r.text)
+        if not match:
+            return []
+        toc_path = match.group(1)
+    except Exception:
+        return []
+
+    try:
+        r = _requests.get(f"{base_url}/{toc_path}", headers=_HEADERS, timeout=8)
+        if not r.ok:
+            return []
+        toc_dir = "/".join(toc_path.split("/")[:-1])
+        chunks = re.findall(r'"([^"]*Chunk\d+\.js)"', r.text)
+    except Exception:
+        return []
+
+    all_urls: list[str] = []
+    for chunk in chunks:
+        try:
+            r = _requests.get(f"{base_url}/{toc_dir}/{chunk}", headers=_HEADERS, timeout=10)
+            if not r.ok:
+                continue
+            paths = re.findall(r'"(Content/[^"]+\.htm)"', r.text)
+            for path in paths:
+                all_urls.append(f"{base_url}/{path}")
+        except Exception:
+            continue
+
+    if all_urls:
+        print(f"  [MADCAP] Found {len(all_urls)} URLs via MadCap Flare TOC.")
+    return all_urls
 
 
 def _probe_faq_paths(base_url: str) -> list[str]:
@@ -399,18 +451,35 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
 def _fetch_page_markdown(url: str) -> tuple[str, str]:
     """
     Fetch a page and return (content, method).
-    Uses Firecrawl if configured (returns clean Markdown).
+    Uses Firecrawl if configured — requests both markdown and rawHtml.
+    rawHtml is parsed with BeautifulSoup which includes CSS-hidden content
+    (e.g. collapsed accordions where answers are display:none).
     Falls back to HTTP + BeautifulSoup.
     """
     if _FIRECRAWL_KEY:
         try:
             from firecrawl import FirecrawlApp
+            from bs4 import BeautifulSoup
             client = FirecrawlApp(api_key=_FIRECRAWL_KEY)
-            result = client.scrape(url, formats=["markdown"])
+            result = client.scrape(url, formats=["markdown", "rawHtml"])
             markdown = (result.markdown or "") if hasattr(result, "markdown") else ""
-            if len(markdown) >= MIN_CONTENT_LENGTH:
-                return markdown[:MAX_PAGE_CHARS], "firecrawl"
-            print(f"  [FIRECRAWL] Response too short ({len(markdown)} chars).")
+            raw_html = (result.rawHtml or "") if hasattr(result, "rawHtml") else ""
+
+            # Parse rawHtml to extract ALL text including CSS-hidden elements
+            # (e.g. Webflow/accordion answers hidden via display:none)
+            full_text = ""
+            if raw_html:
+                soup = BeautifulSoup(raw_html, "html.parser")
+                for tag in soup(["script", "style", "noscript", "svg", "header", "footer", "nav"]):
+                    tag.decompose()
+                full_text = soup.get_text(separator="\n", strip=True)
+
+            # Use whichever is longer — rawHtml text catches hidden accordion answers
+            content = full_text if len(full_text) > len(markdown) else markdown
+            if len(content) >= MIN_CONTENT_LENGTH:
+                method = "firecrawl-html" if content is full_text and full_text != markdown else "firecrawl"
+                return content[:MAX_PAGE_CHARS], method
+            print(f"  [FIRECRAWL] Response too short ({len(content)} chars).")
         except Exception as e:
             print(f"  [FIRECRAWL] Scrape failed: {e}. Falling back to HTTP.")
 
