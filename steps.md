@@ -116,7 +116,7 @@ Each URL is categorised into one of six types:
 | `home` | Root path only (no segments) | `example.com/` |
 | `article_index` | Path has a blog keyword with **no slug** after it — listing/category page | `/blog`, `/resources/guides`, `/blog/case-studies` |
 | `article_post` | Path has a blog keyword followed by a **slug** — individual post | `/blog/how-to-manage-field-service` |
-| `other` | Anything not matched above — service, feature, pricing pages | `/gtm-engineering`, `/pricing`, `/clay-workflow-expert` |
+| `other` | Anything not matched above — ignored | `/gtm-engineering`, `/pricing` |
 
 **How slugs are detected:** a path segment is a post slug if it has **2 or more hyphens** OR is **longer than 20 characters**. Short single-hyphen segments are category names, not posts.
 
@@ -145,9 +145,8 @@ Pages are selected in strict priority order, up to a maximum of **12 pages per d
 | 3rd | Homepage | 1 | Often has an FAQ section |
 | 4th | Blog/content index pages (`/blog`, `/resources`) | 2 | Listing pages, not individual posts |
 | 5th | Individual blog/article posts (slug in path) | 5 | LLM skips if no FAQ section |
-| 6th | Service/feature/pricing pages (everything else) | 3 | Many sites embed FAQs here without calling them `/faq` |
 
-**Priority 6 — why it exists:** Many sites (especially SaaS) embed FAQ sections on product pages like `/gtm-engineering`, `/pricing`, or `/clay-workflow-expert` without ever using `/faq` in the URL. These were previously categorised as `other` and silently dropped. Now they are collected and included last (up to 3), sorted shortest path first so top-level service pages are preferred over deep subpages.
+Everything else (`other` — service pages, pricing, feature pages) is ignored. Competitor sites almost never put FAQs on these pages, and including them would waste credits and slow jobs. If a specific service page needs scraping, submit its URL directly.
 
 If the user submitted a specific FAQ or help URL (e.g. `https://aroflo.com/resources/faq`), that URL is always included first regardless of discovery.
 
@@ -240,7 +239,6 @@ Back in n8n:
 | FAQ/help pages per domain | Max **3** |
 | Blog index pages per domain | Max **2** |
 | Individual blog/article posts | Max **5** (LLM skips if no FAQ section) |
-| Service/feature/pricing pages | Max **3** (LLM skips if no FAQ section) |
 | Page content sent to LLM | Max **60,000 chars** per page |
 | Deduplication | Exact duplicate questions within the same job are dropped |
 
@@ -264,7 +262,6 @@ Back in n8n:
 
 ### What gets skipped
 - Blog/article posts beyond the 5-post limit
-- Service/other pages beyond the 3-page limit
 - Pages shorter than 100 characters after fetching
 - Duplicate questions within the same job run
 - URLs that aren't on the same root domain as the submitted URL

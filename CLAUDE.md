@@ -64,7 +64,7 @@ Two separate pipelines:
 - Background worker (`_run_scrape`):
   1. **URL discovery** (`discover_faq_urls`): Firecrawl map → MadCap Flare TOC fallback → sitemap fallback → path probing
   2. **Categorise** each discovered URL: `faq` | `help` | `home` | `article_index` | `article_post` | `other`
-  3. **Select** up to 12 pages in priority order: max 3 FAQ pages → 1 help → 1 home → 2 blog index → 5 article posts → 3 service/other pages (shortest path first)
+  3. **Select** up to 12 pages in priority order: max 3 FAQ pages → 1 help → 1 home → 2 blog index → 5 article posts
   4. **Fetch** each page using three sources; uses the longest: Firecrawl Markdown, Firecrawl rawHtml (BS4-parsed), static HTTP HTML (BS4-parsed). Max 60,000 chars.
   5. **Extract** FAQs via LLM (OpenRouter + Claude Haiku 4.5). FAQ pages → extract all Q&As. Blog posts & service pages → extract only explicit Q&A pairs; skip if none found.
   6. **Deduplicate** by question text, build CSV, base64-encode it
@@ -94,7 +94,7 @@ The static HTTP source is critical for sites like Aroflo (Webflow) where accordi
 - `home` — root path
 - `article_index` — blog keyword with no slug after it (e.g. `/blog`, `/resources/webinars`)
 - `article_post` — blog keyword + slug (2+ hyphens OR >20 chars) — included last (up to 5); LLM returns `[]` if post has no FAQ section
-- `other` — everything else (service pages, feature pages, pricing). Collected separately and included as the final fallback (up to 3), sorted shortest path first so main product pages (`/pricing`, `/gtm-engineering`) are preferred over deeply nested ones
+- `other` — everything else; ignored (service/pricing pages almost never have FAQ sections on competitor sites)
 
 **Slug detection** (`_is_slug`): A path segment is a post slug if it has `>=2 hyphens` OR `>20 chars`. Category names like `case-studies` have only 1 hyphen so they're treated as index pages.
 
