@@ -75,7 +75,7 @@ Two separate pipelines:
 
 **Async job pattern**: `POST /scrape` returns immediately to avoid Cloudflare's 100s timeout. n8n polls every 10s until done.
 
-**Firecrawl map for URL discovery**: Crawls the entire site (no sitemap needed). With `include_subdomains=True` to catch help subdomains like `helpguide.simprogroup.com`.
+**URL discovery — Firecrawl + sitemap always combined**: Firecrawl map crawls the site via `<a>` link-following (up to 500 URLs, `include_subdomains=True`). The sitemap is **always** parsed alongside Firecrawl — not just as a fallback — because it catches pages that exist but aren't linked anywhere in the navigation (e.g. `/gtm-engineering/pricing`). Both URL sets are merged and deduplicated before categorisation.
 
 **Subdomain detection**: Any discovered subdomain whose prefix is in `_HELP_SUBDOMAIN_KW` (help, support, docs, kb, faq, etc.) gets its own dedicated map call to discover its full URL list.
 

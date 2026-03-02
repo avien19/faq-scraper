@@ -85,12 +85,16 @@ When a help subdomain returns fewer than 20 URLs from Firecrawl, the scraper tri
 
 This is how all 10 FAQ pages on `helpguide.simprogroup.com` are found (out of 767 total pages).
 
-#### 3d. Sitemap fallback
+#### 3d. Sitemap (always checked, not just a fallback)
 
-If Firecrawl fails entirely (API error, key missing), the scraper falls back to parsing the site's XML sitemap:
+The sitemap is **always parsed** alongside Firecrawl — not just when Firecrawl fails. Firecrawl only finds pages reachable via `<a>` links (navigation, internal links). Pages that exist but aren't linked anywhere in the site's navigation — like `/gtm-engineering/pricing` or unlinked service pages — will be in the sitemap but invisible to Firecrawl's link-following. The two URL sets are merged and deduplicated so neither source misses anything.
+
+Sitemap parsing:
 1. Fetch `robots.txt` — look for `Sitemap:` directives
 2. Try `/sitemap.xml` and `/sitemap_index.xml`
 3. Follow any sub-sitemap references (skipping image/video/news sitemaps)
+
+The server logs how many URLs the sitemap contributed beyond Firecrawl: `[SITEMAP] Added N new URL(s) not found by Firecrawl.`
 
 #### 3e. Common path probing
 
@@ -246,7 +250,7 @@ Back in n8n:
 | Normal site | Firecrawl crawls up to 500 URLs via `<a>` links |
 | Help/docs subdomain detected | Separate Firecrawl map on that subdomain (up to 300 URLs) |
 | MadCap Flare help site | TOC chunk files read directly — bypasses JS-only navigation |
-| Sitemap available | Used as fallback if Firecrawl fails |
+| Sitemap | Always checked alongside Firecrawl — catches pages not linked in navigation |
 | No FAQ/help pages found | Falls back to probing common paths (`/faq`, `/help`, `/support`, etc.) |
 | Firecrawl fails entirely | Falls back to plain HTTP + BeautifulSoup |
 
