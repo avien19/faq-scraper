@@ -110,6 +110,28 @@ _BLOG_KW = {
 class ScrapeRequest(BaseModel):
     urls: str               # Comma-separated URLs
     no_discovery: bool = False  # If True, scrape given URLs directly (no Firecrawl map)
+    email: str = ""         # Submitter email — used for one-per-person dedup
+
+
+# ---------------------------------------------------------------------------
+# Email dedup — persisted to disk so it survives server restarts
+# ---------------------------------------------------------------------------
+_EMAILS_FILE = "submitted_emails.json"
+
+
+def _load_emails() -> set:
+    try:
+        with open(_EMAILS_FILE) as f:
+            return set(json.load(f))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return set()
+
+
+def _record_email(email: str) -> None:
+    emails = _load_emails()
+    emails.add(email.lower().strip())
+    with open(_EMAILS_FILE, "w") as f:
+        json.dump(list(emails), f)
 
 
 @app.get("/health")
@@ -681,9 +703,18 @@ def scrape(req: ScrapeRequest):
     """
     Start a scrape job. Returns immediately with a job_id.
     Poll GET /result/{job_id} until status is 'done' or 'error'.
+    If the email has already submitted before, returns status 'already_submitted'.
     """
     if not req.urls.strip():
         raise HTTPException(status_code=400, detail="No URLs provided")
+
+    # One-per-person gate — only enforced when an email is provided
+    if req.email.strip():
+        email = req.email.strip().lower()
+        if email in _load_emails():
+            print(f"[DEDUP] Already submitted: {email}")
+            return {"status": "already_submitted", "job_id": None}
+        _record_email(email)
 
     input_urls = [
         u.strip() for u in re.split(r"[,\n]+", req.urls)

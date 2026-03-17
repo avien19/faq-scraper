@@ -848,7 +848,6 @@
         </p>
         <div class="cta-buttons">
           <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0hnFcYc_vd0TqgbySr_YLESiC4P3gce9aAW1taEvTavCYE1gwFnOciBgHvNqvlYiiI8qzEFWXO" target="_blank" class="btn-cta">Book a free strategy call</a>
-          <a href="#" onclick="resetForm(); return false;" class="btn-outline">Analyse another competitor</a>
         </div>
       </div>
     </div>
@@ -907,30 +906,108 @@
 
 
   <!-- ════════════════════════════════════════════════════════════════
+       ALREADY CLAIMED PAGE
+  ════════════════════════════════════════════════════════════════ -->
+  <div id="claimed-page" style="display:none;">
+
+    <nav class="nav-bar">
+      <span class="nav-brand">Intelligent Resourcing</span>
+      <a href="https://intelligentresourcing.co" class="nav-tag" target="_blank" style="text-decoration:none;">Visit our site</a>
+    </nav>
+
+    <div class="s-hero grid-bg" style="min-height: 60vh; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+      <div class="s-badge">Already claimed</div>
+      <h1 class="s-headline" style="margin-bottom:20px;">You've already<br>got your report.</h1>
+      <p class="s-sub" style="margin-bottom:40px;">
+        Check your inbox for the CSV we sent. Each email address gets one free report so we can keep the quality high for everyone.
+      </p>
+      <div class="cta-buttons" style="justify-content:center;">
+        <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0hnFcYc_vd0TqgbySr_YLESiC4P3gce9aAW1taEvTavCYE1gwFnOciBgHvNqvlYiiI8qzEFWXO" target="_blank" class="btn-cta">Book a free strategy call instead</a>
+      </div>
+      <p style="margin-top:20px; font-size:13px; color:#aaa;">
+        Need a second report? Email us at <strong>hello@intelligentresources.app</strong>
+      </p>
+    </div>
+
+    <!-- Testimonials + footer reused from success page -->
+    <div class="s-testimonials-wrap grid-bg">
+      <div class="s-testimonials-inner">
+        <p class="s-section-kicker">What our clients say</p>
+        <h2 class="s-section-title">Real results,<br>real teams.</h2>
+        <div class="s-testimonials-grid">
+          <div class="s-testimonial">
+            <div class="s-testimonial-stars">★★★★★</div>
+            <blockquote>"We'd heard of tools like Clay and n8n, but had no idea how to use them. Their team built workflows that created results we didn't think were possible without a larger team."</blockquote>
+            <div>
+              <div class="s-testimonial-author">Sales Operations Lead</div>
+              <div class="s-testimonial-role">B2B SaaS, Australia</div>
+            </div>
+          </div>
+          <div class="s-testimonial">
+            <div class="s-testimonial-stars">★★★★★</div>
+            <blockquote>"Intelligent Resourcing nailed finding our ICP and delivered a clean list of decision-makers. What would have taken ages to do manually was ready in minutes, and the campaign structure just worked."</blockquote>
+            <div>
+              <div class="s-testimonial-author">Founder</div>
+              <div class="s-testimonial-role">B2B Services, Melbourne</div>
+            </div>
+          </div>
+          <div class="s-testimonial">
+            <div class="s-testimonial-stars">★★★★★</div>
+            <blockquote>"Our offshore hire picked things up quickly and fits right into how we work. We've saved around 70% compared to hiring locally, and the quality has been outstanding."</blockquote>
+            <div>
+              <div class="s-testimonial-author">Operations Manager</div>
+              <div class="s-testimonial-role">Growth Stage Company</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="s-footer">
+      <div>
+        <div class="s-footer-brand">Intelligent Resourcing</div>
+        <div class="s-footer-tagline">Relevance scales better than volume.</div>
+      </div>
+      <div class="s-footer-links">
+        <a href="https://intelligentresourcing.co" target="_blank">Website</a>
+        <a href="https://intelligentresourcing.co/contact" target="_blank">Contact</a>
+        <a href="https://intelligentresourcing.co/terms-privacy/privacy-policy" target="_blank">Privacy</a>
+      </div>
+    </footer>
+
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════════
        SCRIPT
   ════════════════════════════════════════════════════════════════ -->
   <script>
-    if (new URLSearchParams(window.location.search).has("preview")) {
-      document.getElementById("form-page").style.display  = "none";
-      document.getElementById("success-page").style.display = "block";
-      document.body.className = "page-success";
-    }
+    const LS_KEY      = "ir_faq_submitted";
+    const WEBHOOK_URL = "https://n8n.intelligentresources.app/webhook/faq-scraper";
+    const LOCAL_API   = "http://localhost:8000";
+    const BOOKING_URL = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0hnFcYc_vd0TqgbySr_YLESiC4P3gce9aAW1taEvTavCYE1gwFnOciBgHvNqvlYiiI8qzEFWXO";
 
     const LOCAL = window.location.hostname === "localhost"
                || window.location.hostname === "127.0.0.1"
                || window.location.protocol === "file:";
 
-    const WEBHOOK_URL = "https://n8n.intelligentresources.app/webhook/faq-scraper";
-    const LOCAL_API   = "http://localhost:8000";
-
+    const params      = new URLSearchParams(window.location.search);
+    const formPage    = document.getElementById("form-page");
+    const successPage = document.getElementById("success-page");
+    const claimedPage = document.getElementById("claimed-page");
     const form        = document.getElementById("scraper-form");
     const submitBtn   = document.getElementById("submit-btn");
     const btnText     = document.getElementById("btn-text");
     const spinner     = document.getElementById("spinner");
     const errorMsg    = document.getElementById("error-msg");
-    const formPage    = document.getElementById("form-page");
-    const successPage = document.getElementById("success-page");
 
+    // Preview shortcuts
+    if (params.has("preview"))        showPage("success");
+    else if (params.has("claimed"))   showPage("claimed");
+    // localStorage gate — returning visitor who already submitted
+    else if (!LOCAL && localStorage.getItem(LS_KEY)) showPage("claimed");
+
+    // Local mode tweaks
     if (LOCAL) {
       document.getElementById("email-field").style.display = "none";
       document.getElementById("privacy-note").style.display = "none";
@@ -963,7 +1040,9 @@
           body: JSON.stringify({ urls: urlList, email }),
         });
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-        showSuccess();
+        // Mark as submitted in browser so they see the claimed page if they return
+        localStorage.setItem(LS_KEY, "1");
+        showPage("success");
       } catch (err) {
         showError("Something went wrong. Please try again in a moment.");
         setLoading(false);
@@ -978,18 +1057,26 @@
           body: JSON.stringify({ urls: urlList }),
         });
         if (!startRes.ok) throw new Error(`/scrape responded with ${startRes.status}`);
-        const { job_id } = await startRes.json();
+        const data = await startRes.json();
+
+        // Server-side dedup response
+        if (data.status === "already_submitted") {
+          showPage("claimed");
+          return;
+        }
+
+        const { job_id } = data;
 
         while (true) {
           await sleep(3000);
           const pollRes = await fetch(`${LOCAL_API}/result/${job_id}`);
           if (!pollRes.ok) throw new Error(`/result responded with ${pollRes.status}`);
-          const data = await pollRes.json();
+          const poll = await pollRes.json();
 
-          if (data.status === "processing") { btnText.textContent = "Scanning..."; continue; }
-          if (data.status === "error") throw new Error(data.result?.error || "Unknown error");
+          if (poll.status === "processing") { btnText.textContent = "Scanning..."; continue; }
+          if (poll.status === "error") throw new Error(poll.result?.error || "Unknown error");
 
-          const result = data.result;
+          const result = poll.result;
           if (result.found && result.csv) {
             const blob = new Blob([atob(result.csv)], { type: "text/csv" });
             const a = document.createElement("a");
@@ -1005,28 +1092,27 @@
           break;
         }
 
-        showSuccess();
+        showPage("success");
       } catch (err) {
         showError(`Error: ${err.message}`);
         setLoading(false);
       }
     }
 
-    function showSuccess() {
-      document.body.className = "page-success";
-      formPage.style.display  = "none";
-      successPage.style.display = "block";
-      window.scrollTo(0, 0);
-    }
-
-    function resetForm() {
-      document.body.className = "page-form grid-bg";
-      formPage.style.display  = "block";
+    function showPage(page) {
+      formPage.style.display    = "none";
       successPage.style.display = "none";
-      setLoading(false);
-      document.getElementById("urls").value  = "";
-      document.getElementById("email").value = "";
-      errorMsg.style.display = "none";
+      claimedPage.style.display = "none";
+      if (page === "success") {
+        document.body.className   = "page-success";
+        successPage.style.display = "block";
+      } else if (page === "claimed") {
+        document.body.className   = "page-success";
+        claimedPage.style.display = "block";
+      } else {
+        document.body.className  = "page-form grid-bg";
+        formPage.style.display   = "block";
+      }
       window.scrollTo(0, 0);
     }
 
