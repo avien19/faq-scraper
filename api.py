@@ -13,6 +13,7 @@ Pipeline per domain:
   3. Select up to 12 pages in priority order:
        max 3 FAQ → 1 help → 1 home → 2 article_index → 5 article_post
        → other pages fill ALL remaining slots (shortest path first, no inner cap)
+     Total cap: 15 pages per domain.
   4. Fetch each page — static HTTP (BS4) vs Firecrawl rawHtml (BS4); longest wins.
      Max 60,000 chars per page.
   5. Extract FAQs via LLM (Claude Haiku 4.5 via OpenRouter).
@@ -35,6 +36,7 @@ from urllib.parse import urlparse
 import requests as _requests
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 load_dotenv()
@@ -51,6 +53,12 @@ LLM_MODEL = _cfg["llm"]["model"]
 _FIRECRAWL_KEY = os.environ.get("FIRECRAWL_API_KEY")
 
 app = FastAPI(title="FAQ Scraper API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ---------------------------------------------------------------------------
 # Async job store
@@ -59,7 +67,7 @@ _jobs: dict = {}           # job_id → {"status": "processing"|"done"|"error", 
 _executor = ThreadPoolExecutor(max_workers=4)
 
 # Caps
-MAX_URLS_PER_DOMAIN = 12
+MAX_URLS_PER_DOMAIN = 15
 MAX_FAQ_PAGES = 3          # dedicated FAQ/help pages
 MAX_ARTICLE_INDEXES = 2    # blog/content INDEX pages (not posts)
 MAX_ARTICLE_POSTS = 5      # individual blog/article posts (LLM returns [] if no FAQ section)

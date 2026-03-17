@@ -136,7 +136,7 @@ These are different things. The scraper picks **2 blog listing pages** + up to *
 
 ### Step 5 — Select pages to scrape
 
-Pages are selected in strict priority order, up to a maximum of **12 pages per domain**:
+Pages are selected in strict priority order, up to a maximum of **15 pages per domain**:
 
 | Priority | Type | Max | Why |
 |----------|------|-----|-----|
@@ -145,7 +145,7 @@ Pages are selected in strict priority order, up to a maximum of **12 pages per d
 | 3rd | Homepage | 1 | Often has an FAQ section |
 | 4th | Blog/content index pages (`/blog`, `/resources`) | 2 | Listing pages, not individual posts |
 | 5th | Individual blog/article posts (slug in path) | 5 | LLM skips if no FAQ section |
-| 6th | Everything else — slot-filler | all remaining slots | Fills remaining capacity when priority pages don't use all 12 slots |
+| 6th | Everything else — slot-filler | all remaining slots | Fills remaining capacity when priority pages don't use all 15 slots |
 
 **How priority 6 works:** `other` pages (service, pricing, feature pages — anything not matching the above categories) are sorted by path depth, shortest first, so `/pricing` (1 segment) comes before `/gtm-engineering/pricing` (2 segments). They fill **all** remaining slots after priority pages — there is no separate inner cap. Example: a site with 3 FAQ + 1 help + 1 home + 2 blog index + 5 blog posts uses all 12 slots — no `other` pages get in. A site with no FAQ or help pages (like `intelligentresourcing.co`) uses 1 home + 1 article_index + 5 article_post = 7 slots, leaving 5 open for `other` pages like `/gtm-engineering`, `/clay-workflow-expert`, `/gtm-engineering/pricing`, etc.
 
@@ -233,11 +233,11 @@ Back in n8n:
 ### Per submission
 | What | Limit |
 |------|-------|
-| Pages scraped per domain | Max **12 pages** |
+| Pages scraped per domain | Max **15 pages** |
 | FAQ/help pages per domain | Max **3** |
 | Blog index pages per domain | Max **2** |
 | Individual blog/article posts | Max **5** (LLM skips if no FAQ section) |
-| Other pages (service, pricing, etc.) | All remaining slots — fill everything priority pages don't use (max is 12 total) |
+| Other pages (service, pricing, etc.) | All remaining slots — fill everything priority pages don't use (max is 15 total) |
 | Page content sent to LLM | Max **60,000 chars** per page |
 | Deduplication | Exact duplicate questions within the same job are dropped |
 
@@ -261,7 +261,7 @@ Back in n8n:
 
 ### What gets skipped
 - Blog/article posts beyond the 5-post limit
-- Other/service pages beyond the remaining capacity (the 12-page total is the only limit)
+- Other/service pages beyond the remaining capacity (the 15-page total is the only limit)
 - Pages shorter than 100 characters after fetching
 - Duplicate questions within the same job run
 - URLs that aren't on the same root domain as the submitted URL
@@ -275,6 +275,6 @@ Back in n8n:
 
 ### Timing
 - Each page takes roughly **15–30 seconds** to fetch + extract
-- A full domain (12 pages max) takes roughly **3–6 minutes**
+- A full domain (15 pages max) takes roughly **4–8 minutes**
 - The n8n polling loop checks every **10 seconds**
 - No hard timeout — the job runs until complete or errors

@@ -64,7 +64,7 @@ Two separate pipelines:
 - Background worker (`_run_scrape`):
   1. **URL discovery** (`discover_faq_urls`): Firecrawl map + sitemap (always both, merged) → MadCap Flare TOC fallback → common path probing
   2. **Categorise** each discovered URL: `faq` | `help` | `home` | `article_index` | `article_post` | `other`
-  3. **Select** up to 12 pages in priority order: max 3 FAQ → 1 help → 1 home → 2 blog index → 5 blog posts → other pages fill ALL remaining slots (shortest path first, no separate inner cap)
+  3. **Select** up to 15 pages in priority order: max 3 FAQ → 1 help → 1 home → 2 blog index → 5 blog posts → other pages fill ALL remaining slots (shortest path first, no separate inner cap)
   4. **Fetch** each page using two sources; uses the longest: static HTTP HTML (BS4-parsed) vs Firecrawl rawHtml (BS4-parsed). Max 60,000 chars.
   5. **Extract** FAQs via LLM (OpenRouter + Claude Haiku 4.5). FAQ pages → extract all Q&As. Blog posts & service pages → extract only explicit Q&A pairs; skip if none found.
   6. **Deduplicate** by question text, build CSV, base64-encode it
@@ -93,7 +93,7 @@ Firecrawl Markdown is intentionally not used — it's a stripped-down version of
 - `home` — root path
 - `article_index` — blog keyword with no slug after it (e.g. `/blog`, `/resources/webinars`)
 - `article_post` — blog keyword + slug (2+ hyphens OR >20 chars) — included last (up to 5); LLM returns `[]` if post has no FAQ section
-- `other` — everything else (service, pricing, feature pages). Fills ALL remaining slots after priority pages, sorted shortest-path-first. No separate inner cap — the 12-page total ceiling is the only limit.
+- `other` — everything else (service, pricing, feature pages). Fills ALL remaining slots after priority pages, sorted shortest-path-first. No separate inner cap — the 15-page total ceiling is the only limit.
 
 **Slug detection** (`_is_slug`): A path segment is a post slug if it has `>=2 hyphens` OR `>20 chars`. Category names like `case-studies` have only 1 hyphen so they're treated as index pages.
 
