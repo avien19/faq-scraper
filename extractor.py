@@ -47,9 +47,10 @@ Given the list of competitor Q&A pairs below, return a JSON object with these ex
 Rules:
 - content_opportunities: up to 5 questions that have high search or AI answer engine intent — questions real buyers would ask an AI tool or Google
 - competitor_themes: up to 4 recurring topic clusters across all the FAQs — name the theme and explain what it signals
-- top_questions: exactly 3 questions your client should address on their own site immediately
+- top_questions: exactly 3 questions that buyers are most commonly asking competitors — the highest-signal questions in the dataset
 - strategic_insight: one sharp observation about what these FAQs reveal about how competitors are positioning themselves
 - Be specific and direct. No generic observations. No marketing language.
+- If page last-modified dates are available and most are older than 2 years, note this as a staleness risk in strategic_insight (e.g. "Note: most pages appear to be from 2021 — this content may not reflect current positioning.").
 - Return ONLY valid JSON. No markdown, no explanation, no code fences.
 
 FAQ data:
@@ -69,7 +70,8 @@ def analyze_faqs(rows: list, provider: str, model: str) -> dict:
 
     lines = []
     for r in rows:
-        lines.append(f"[{r[0]}] Q: {r[2]}\n       A: {r[3]}")
+        lm = f" [content date: {r[5]}]" if len(r) > 5 and r[5] else ""
+        lines.append(f"[{r[0]}]{lm} Q: {r[2]}\n       A: {r[3]}")
     faq_text = "\n\n".join(lines)
 
     prompt = ANALYSIS_PROMPT.format(faq_text=faq_text)
@@ -124,7 +126,7 @@ def findings_to_html(findings: dict) -> str:
         items = "".join(f'<li style="padding:8px 0;border-bottom:1px solid #E5E1E4;color:#47404E;font-size:14px;line-height:1.5;">{q}</li>' for q in tq)
         parts.append(f"""
   <div style="margin-bottom:32px;">
-    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 12px;">Top 3 Questions to Address on Your Site</p>
+    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 12px;">Top 3 Questions Buyers Are Asking Competitors</p>
     <ul style="list-style:none;margin:0;padding:0;border-top:1px solid #E5E1E4;">{items}</ul>
   </div>
 """)

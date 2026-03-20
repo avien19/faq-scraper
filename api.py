@@ -523,6 +523,33 @@ def discover_faq_urls(input_url: str, max_total: int = MAX_URLS_PER_DOMAIN) -> l
 # Page fetching
 # ---------------------------------------------------------------------------
 
+def _extract_page_date(text: str) -> str:
+    """Scan visible page text for an author-written publish or update date.
+
+    Looks for patterns like:
+      "Last updated: March 15, 2024"
+      "Updated: 2024-03-15"
+      "Published: January 2023"
+    Returns the matched date string, or "" if none found.
+    Only searches the first 3,000 characters where dates typically appear
+    (bylines, article headers, breadcrumbs).
+    """
+    sample = text[:3000]
+    _M = r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
+    _D = rf"(?:\d{{1,2}}\s+{_M}|\s*{_M}\s+\d{{1,2}},?)\s+\d{{4}}|{_M}\s+\d{{4}}|\d{{4}}-\d{{2}}-\d{{2}}"
+    patterns = [
+        rf"(?:last\s+)?updat(?:ed?)[:\s]+({_D})",
+        rf"published[:\s]+({_D})",
+        rf"last\s+modified[:\s]+({_D})",
+        rf"posted(?:\s+on)?[:\s]+({_D})",
+    ]
+    for pat in patterns:
+        m = re.search(pat, sample, re.IGNORECASE)
+        if m:
+            return m.group(1).strip()
+    return ""
+
+
 def _fetch_page_markdown(url: str) -> tuple[str, str]:
     """
     Fetch a page and return (content, method).
@@ -645,14 +672,16 @@ def _run_scrape(job_id: str, urls_raw: str, no_discovery: bool = False) -> None:
                     print(f"  [SKIP] No usable content ({len(content)} chars).")
                     continue
 
-                print(f"  Content: {len(content)} chars (via {method}). Extracting with LLM...")
+                page_date = _extract_page_date(content)
+                date_note = f" | content date: {page_date}" if page_date else ""
+                print(f"  Content: {len(content)} chars (via {method}{date_note}). Extracting with LLM...")
                 faqs = extract_faqs(content, url, LLM_PROVIDER, LLM_MODEL)
                 print(f"  Found {len(faqs)} FAQ(s).")
 
                 for faq in faqs:
                     if faq["question"] not in seen_questions:
                         seen_questions.add(faq["question"])
-                        rows.append([name, url, faq["question"], faq["answer"], date.today().isoformat()])
+                        rows.append([name, url, faq["question"], faq["answer"], date.today().isoformat(), page_date])
 
                 time.sleep(1)
 
@@ -674,7 +703,7 @@ def _run_scrape(job_id: str, urls_raw: str, no_discovery: bool = False) -> None:
 
         buf = io.StringIO()
         writer = csv.writer(buf)
-        writer.writerow(["Competitor", "Source URL", "Question", "Answer", "Date"])
+        writer.writerow(["Competitor", "Source URL", "Question", "Answer", "Date", "Content Date"])
         writer.writerows(rows)
         csv_b64 = base64.b64encode(buf.getvalue().encode("utf-8")).decode("ascii")
 
@@ -692,7 +721,7 @@ def _run_scrape(job_id: str, urls_raw: str, no_discovery: bool = False) -> None:
                 "csv": csv_b64,
                 "analysis_html": analysis_html,
                 "faqs": [
-                    {"competitor": r[0], "source_url": r[1], "question": r[2], "answer": r[3], "date": r[4]}
+                    {"competitor": r[0], "source_url": r[1], "question": r[2], "answer": r[3], "date": r[4], "page_last_modified": r[5] if len(r) > 5 else ""}
                     for r in rows
                 ],
                 "pages_checked": pages_checked,
