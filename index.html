@@ -6,7 +6,7 @@
   <title>Free Competitor FAQ Report | Intelligent Resourcing</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,25 +32,25 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── Crosshatch grid background ── */
+    /* ── Grain / noise background ── */
     .crosshatch {
       background-color: var(--light);
-      background-image:
-        repeating-linear-gradient(
-          -45deg,
-          transparent,
-          transparent 18px,
-          var(--grid) 18px,
-          var(--grid) 18.5px
-        ),
-        repeating-linear-gradient(
-          45deg,
-          transparent,
-          transparent 18px,
-          var(--grid) 18px,
-          var(--grid) 18.5px
-        );
+      position: relative;
     }
+
+    .crosshatch::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("https://cdn.prod.website-files.com/69868276036f175e862bb983/6996e8f815707092f5efea34_256-90-6.avif");
+      background-size: 256px 256px;
+      background-repeat: repeat;
+      opacity: 0.08;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .crosshatch > * { position: relative; z-index: 1; }
 
     /* ── Nav ── */
     .nav {
@@ -158,7 +158,7 @@
     }
 
     .form-headline em {
-      font-family: "Great Vibes", cursive;
+      font-family: "Dancing Script", cursive;
       font-style: normal;
       font-weight: 400;
       color: var(--orange);
@@ -326,7 +326,7 @@
     }
 
     .section-headline em {
-      font-family: "Great Vibes", cursive;
+      font-family: "Dancing Script", cursive;
       font-style: normal;
       font-weight: 400;
       color: var(--orange);
@@ -436,7 +436,7 @@
     }
 
     .cs-heading .hl {
-      font-family: "Great Vibes", cursive;
+      font-family: "Dancing Script", cursive;
       font-weight: 400;
       color: var(--orange);
       font-size: 1.25em;
@@ -742,7 +742,7 @@
     }
 
     .cta-heading em {
-      font-family: "Great Vibes", cursive;
+      font-family: "Dancing Script", cursive;
       font-style: normal;
       font-weight: 400;
       color: var(--orange);
@@ -825,7 +825,7 @@
     }
 
     .claimed-heading em {
-      font-family: "Great Vibes", cursive;
+      font-family: "Dancing Script", cursive;
       font-style: normal;
       font-weight: 400;
       color: var(--orange);
