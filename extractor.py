@@ -29,6 +29,150 @@ Page content:
 ---"""
 
 
+ANALYSIS_PROMPT = """You are a content strategist analysing FAQ data scraped from competitor websites.
+
+Given the list of competitor Q&A pairs below, return a JSON object with these exact keys:
+
+{{
+  "content_opportunities": [
+    {{"question": "...", "why": "one sentence on why this is worth creating content for"}}
+  ],
+  "competitor_themes": [
+    {{"theme": "...", "insight": "one sentence on what this reveals about their positioning"}}
+  ],
+  "top_questions": ["...", "...", "..."],
+  "strategic_insight": "..."
+}}
+
+Rules:
+- content_opportunities: up to 5 questions that have high search or AI answer engine intent — questions real buyers would ask an AI tool or Google
+- competitor_themes: up to 4 recurring topic clusters across all the FAQs — name the theme and explain what it signals
+- top_questions: exactly 3 questions your client should address on their own site immediately
+- strategic_insight: one sharp observation about what these FAQs reveal about how competitors are positioning themselves
+- Be specific and direct. No generic observations. No marketing language.
+- Return ONLY valid JSON. No markdown, no explanation, no code fences.
+
+FAQ data:
+---
+{faq_text}
+---"""
+
+
+def analyze_faqs(rows: list, provider: str, model: str) -> dict:
+    """Analyse extracted FAQ rows and return structured key findings.
+
+    rows: list of [competitor, url, question, answer, date]
+    Returns a dict with content_opportunities, competitor_themes, top_questions, strategic_insight.
+    """
+    if not rows:
+        return {}
+
+    lines = []
+    for r in rows:
+        lines.append(f"[{r[0]}] Q: {r[2]}\n       A: {r[3]}")
+    faq_text = "\n\n".join(lines)
+
+    prompt = ANALYSIS_PROMPT.format(faq_text=faq_text)
+
+    try:
+        if provider == "openrouter":
+            raw = _call_openrouter(prompt, model)
+        elif provider == "anthropic":
+            raw = _call_anthropic(prompt, model)
+        elif provider == "openai":
+            raw = _call_openai(prompt, model)
+        elif provider == "gemini":
+            raw = _call_gemini(prompt, model)
+        else:
+            return {}
+
+        raw = re.sub(r"```json\s*", "", raw)
+        raw = re.sub(r"```\s*", "", raw).strip()
+        return json.loads(raw)
+    except Exception as e:
+        print(f"  [WARN] Analysis failed: {e}")
+        return {}
+
+
+def findings_to_html(findings: dict) -> str:
+    """Convert analysis findings dict to an inline HTML email block."""
+    if not findings:
+        return ""
+
+    parts = []
+    parts.append("""
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;">
+  <div style="border-top:3px solid #F16324;padding-top:24px;margin-bottom:32px;">
+    <p style="font-family:monospace;font-size:11px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 8px;">Key Findings</p>
+    <h2 style="font-size:22px;font-weight:700;color:#14141C;margin:0;">What your competitors' FAQs are telling you</h2>
+  </div>
+""")
+
+    # Strategic insight
+    si = findings.get("strategic_insight", "")
+    if si:
+        parts.append(f"""
+  <div style="background:#FBF8F8;border-left:3px solid #6B49B2;padding:16px 20px;border-radius:0 6px 6px 0;margin-bottom:32px;">
+    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#6B49B2;text-transform:uppercase;margin:0 0 6px;">Strategic Observation</p>
+    <p style="font-size:15px;color:#14141C;line-height:1.6;margin:0;">{si}</p>
+  </div>
+""")
+
+    # Top questions
+    tq = findings.get("top_questions", [])
+    if tq:
+        items = "".join(f'<li style="padding:8px 0;border-bottom:1px solid #E5E1E4;color:#47404E;font-size:14px;line-height:1.5;">{q}</li>' for q in tq)
+        parts.append(f"""
+  <div style="margin-bottom:32px;">
+    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 12px;">Top 3 Questions to Address on Your Site</p>
+    <ul style="list-style:none;margin:0;padding:0;border-top:1px solid #E5E1E4;">{items}</ul>
+  </div>
+""")
+
+    # Content opportunities
+    co = findings.get("content_opportunities", [])
+    if co:
+        cards = ""
+        for item in co:
+            cards += f"""
+    <div style="border:1px solid #E5E1E4;border-radius:6px;padding:16px;margin-bottom:10px;">
+      <p style="font-size:14px;font-weight:600;color:#14141C;margin:0 0 4px;">{item.get('question','')}</p>
+      <p style="font-size:13px;color:#8A8494;margin:0;">{item.get('why','')}</p>
+    </div>"""
+        parts.append(f"""
+  <div style="margin-bottom:32px;">
+    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 12px;">Content Opportunities</p>
+    {cards}
+  </div>
+""")
+
+    # Competitor themes
+    ct = findings.get("competitor_themes", [])
+    if ct:
+        rows_html = "".join(
+            f'<tr><td style="padding:10px 12px;font-size:14px;font-weight:600;color:#14141C;border-bottom:1px solid #E5E1E4;vertical-align:top;width:35%;">{item.get("theme","")}</td><td style="padding:10px 12px;font-size:13px;color:#47404E;border-bottom:1px solid #E5E1E4;line-height:1.5;">{item.get("insight","")}</td></tr>'
+            for item in ct
+        )
+        parts.append(f"""
+  <div style="margin-bottom:32px;">
+    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 12px;">Competitor Themes</p>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #E5E1E4;border-radius:6px;overflow:hidden;">
+      <thead><tr style="background:#14141C;"><th style="padding:10px 12px;font-family:monospace;font-size:11px;color:#fff;text-align:left;font-weight:500;">Theme</th><th style="padding:10px 12px;font-family:monospace;font-size:11px;color:#fff;text-align:left;font-weight:500;">What it signals</th></tr></thead>
+      <tbody>{rows_html}</tbody>
+    </table>
+  </div>
+""")
+
+    parts.append("""
+  <div style="border-top:1px solid #E5E1E4;padding-top:20px;margin-top:8px;">
+    <p style="font-size:13px;color:#8A8494;margin:0;">Your full FAQ CSV is attached. — <a href="https://intelligentresourcing.co" style="color:#F16324;text-decoration:none;">Intelligent Resourcing</a></p>
+  </div>
+</div>
+""")
+
+    return "".join(parts)
+
+
 def extract_faqs(page_text, source_url, provider, model, raw_html=None, mode="llm"):
     """Extract FAQ Q&A pairs from a page.
 

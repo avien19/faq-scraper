@@ -678,12 +678,19 @@ def _run_scrape(job_id: str, urls_raw: str, no_discovery: bool = False) -> None:
         writer.writerows(rows)
         csv_b64 = base64.b64encode(buf.getvalue().encode("utf-8")).decode("ascii")
 
+        # Key findings analysis
+        print(f"[job:{job_id[:8]}] Running key findings analysis...")
+        from extractor import analyze_faqs, findings_to_html
+        findings = analyze_faqs(rows, LLM_PROVIDER, LLM_MODEL)
+        analysis_html = findings_to_html(findings)
+
         _jobs[job_id] = {
             "status": "done",
             "result": {
                 "found": True,
                 "count": len(rows),
                 "csv": csv_b64,
+                "analysis_html": analysis_html,
                 "faqs": [
                     {"competitor": r[0], "source_url": r[1], "question": r[2], "answer": r[3], "date": r[4]}
                     for r in rows
