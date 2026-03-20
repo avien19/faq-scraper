@@ -37,7 +37,7 @@
       background-color: var(--light);
     }
 
-    /* Fullpage grain overlay via inline SVG feTurbulence */
+    /* Fullpage grain overlay — canvas-generated noise */
     .noise-layer {
       position: fixed;
       inset: 0;
@@ -45,7 +45,7 @@
       height: 100%;
       pointer-events: none;
       z-index: 9999;
-      opacity: 0.55;
+      opacity: 0.12;
       mix-blend-mode: overlay;
     }
 
@@ -867,15 +867,7 @@
 <body>
 
   <!-- Grain noise overlay -->
-  <div class="noise-layer" aria-hidden="true">
-    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
-      <filter id="grain">
-        <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/>
-        <feColorMatrix type="saturate" values="0"/>
-      </filter>
-      <rect width="100%" height="100%" filter="url(#grain)"/>
-    </svg>
-  </div>
+  <canvas id="grain-canvas" class="noise-layer" aria-hidden="true"></canvas>
 
   <!-- Page content sits above the noise layer -->
   <div id="page" style="position:relative; z-index:1;">
@@ -1179,6 +1171,25 @@
        SCRIPT
   ════════════════════════════════════════════════════════════════ -->
   <script>
+    // Generate canvas grain texture
+    (function() {
+      const canvas = document.getElementById('grain-canvas');
+      const size = 256;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      const img = ctx.createImageData(size, size);
+      for (let i = 0; i < img.data.length; i += 4) {
+        const v = Math.random() * 255 | 0;
+        img.data[i] = img.data[i+1] = img.data[i+2] = v;
+        img.data[i+3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      canvas.style.backgroundImage = 'url(' + canvas.toDataURL() + ')';
+      canvas.style.backgroundRepeat = 'repeat';
+      canvas.width = 0; canvas.height = 0;
+    })();
+
     const LS_KEY      = "ir_faq_submitted";
     const WEBHOOK_URL = "https://n8n.intelligentresources.app/webhook/faq-scraper";
     const LOCAL_API   = "http://localhost:8000";
