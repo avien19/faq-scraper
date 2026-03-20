@@ -268,36 +268,51 @@
        SUCCESS PAGE
     ════════════════════════════════ */
 
-    /* Inbox strip */
-    .inbox-strip {
-      background: var(--dark);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      padding: 10px 24px;
+    /* AEO hero — full viewport height */
+    .aeo-hero {
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: 0 24px;
+      text-align: center;
+    }
+
+    .aeo-hero-inner {
+      max-width: 680px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* Inbox strip — inside the hero */
+    .inbox-strip {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 48px;
+    }
+
+    .inbox-strip-inner {
+      display: inline-flex;
+      align-items: center;
       gap: 8px;
+      background: rgba(241, 99, 36, 0.12);
+      padding: 8px 20px;
+      border-radius: 100px;
       font-family: "DM Mono", monospace;
       font-size: 12px;
-      color: var(--muted);
+      letter-spacing: 0.04em;
+      color: var(--dark);
     }
 
     .inbox-strip-dot {
       width: 6px; height: 6px;
       border-radius: 50%;
       background: #1C8B6A;
+      flex-shrink: 0;
       animation: blink 2s ease-in-out infinite;
-    }
-
-    /* AEO hero */
-    .aeo-hero {
-      padding: 96px 24px 80px;
-      text-align: center;
-    }
-
-    .aeo-hero-inner {
-      max-width: 700px;
-      margin: 0 auto;
     }
 
     .section-headline {
@@ -532,7 +547,7 @@
 
     /* Services */
     .services-wrap {
-      background: var(--white);
+      background: transparent;
       padding: 80px 24px;
     }
 
@@ -861,14 +876,6 @@
   ════════════════════════════════════════════════════════════════ -->
   <div id="form-page">
 
-    <nav class="nav">
-      <a href="https://intelligentresourcing.co" class="nav-brand" target="_blank">
-        <span class="nav-brand-dot"></span>
-        Intelligent Resourcing
-      </a>
-      <a href="https://intelligentresourcing.co" class="nav-link" target="_blank">Visit our site</a>
-    </nav>
-
     <div class="form-page crosshatch">
       <div class="form-hero">
         <div class="form-hero-inner">
@@ -935,24 +942,18 @@
   ════════════════════════════════════════════════════════════════ -->
   <div id="success-page" style="display:none;">
 
-    <nav class="nav">
-      <a href="https://intelligentresourcing.co" class="nav-brand" target="_blank">
-        <span class="nav-brand-dot"></span>
-        Intelligent Resourcing
-      </a>
-      <a href="https://intelligentresourcing.co" class="nav-link" target="_blank">Visit our site</a>
-    </nav>
-
-    <!-- Inbox strip -->
-    <div class="inbox-strip">
-      <span class="inbox-strip-dot"></span>
-      <span id="success-sub">Your Competitor FAQ Report is on its way. Check your inbox in 3 to 5 minutes.</span>
-      <span id="success-headline" style="display:none;"></span>
-    </div>
-
-    <!-- AEO Hero -->
+    <!-- AEO Hero — full viewport -->
     <div class="aeo-hero crosshatch">
       <div class="aeo-hero-inner">
+
+        <!-- Inbox pill -->
+        <div class="inbox-strip">
+          <div class="inbox-strip-inner">
+            <span class="inbox-strip-dot"></span>
+            <span id="success-sub">Your Competitor FAQ Report is on its way. Check your inbox in 3 to 5 minutes.</span>
+            <span id="success-headline" style="display:none;"></span>
+          </div>
+        </div>
         <div class="pill">
           <span class="pill-dot"></span>
           Answer Engine Optimisation
@@ -1090,19 +1091,6 @@
       </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="site-footer">
-      <div>
-        <div class="footer-brand">Intelligent Resourcing</div>
-        <div class="footer-tagline">signal-led growth</div>
-      </div>
-      <div class="footer-links">
-        <a href="https://intelligentresourcing.co" target="_blank">Website</a>
-        <a href="https://intelligentresourcing.co/contact" target="_blank">Contact</a>
-        <a href="https://intelligentresourcing.co/terms-privacy/privacy-policy" target="_blank">Privacy</a>
-      </div>
-    </footer>
-
   </div>
 
 
@@ -1110,14 +1098,6 @@
        CLAIMED PAGE
   ════════════════════════════════════════════════════════════════ -->
   <div id="claimed-page" style="display:none;">
-
-    <nav class="nav">
-      <a href="https://intelligentresourcing.co" class="nav-brand" target="_blank">
-        <span class="nav-brand-dot"></span>
-        Intelligent Resourcing
-      </a>
-      <a href="https://intelligentresourcing.co" class="nav-link" target="_blank">Visit our site</a>
-    </nav>
 
     <div class="claimed-hero crosshatch">
       <div class="claimed-inner">
@@ -1136,18 +1116,6 @@
       </div>
     </div>
 
-    <footer class="site-footer">
-      <div>
-        <div class="footer-brand">Intelligent Resourcing</div>
-        <div class="footer-tagline">signal-led growth</div>
-      </div>
-      <div class="footer-links">
-        <a href="https://intelligentresourcing.co" target="_blank">Website</a>
-        <a href="https://intelligentresourcing.co/contact" target="_blank">Contact</a>
-        <a href="https://intelligentresourcing.co/terms-privacy/privacy-policy" target="_blank">Privacy</a>
-      </div>
-    </footer>
-
   </div>
 
 
@@ -1165,7 +1133,7 @@
       for (let i = 0; i < img.data.length; i += 4) {
         const v = Math.random() * 255 | 0;
         img.data[i] = img.data[i+1] = img.data[i+2] = v;
-        img.data[i+3] = 40; // semi-transparent so base color shows through
+        img.data[i+3] = 12; // semi-transparent so base color shows through
       }
       ctx.putImageData(img, 0, 0);
       document.body.style.backgroundImage = 'url(' + c.toDataURL() + ')';
