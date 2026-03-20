@@ -44,8 +44,9 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      z-index: 9999;
+      z-index: 0;
       opacity: 0.45;
+      mix-blend-mode: multiply;
     }
 
     /* ── Nav ── */
@@ -876,6 +877,9 @@
     </svg>
   </div>
 
+  <!-- Page content sits above the noise layer -->
+  <div id="page" style="position:relative; z-index:1;">
+
   <!-- ════════════════════════════════════════════════════════════════
        FORM PAGE
   ════════════════════════════════════════════════════════════════ -->
@@ -1313,5 +1317,6 @@
       errorMsg.style.display = "block";
     }
   </script>
+  </div><!-- /#page -->
 </body>
 </html>
