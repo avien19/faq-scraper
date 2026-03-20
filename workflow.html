@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ Scraper — How It Works</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark:   #14141C;
+      --orange: #F16324;
+      --purple: #6B49B2;
+      --light:  #FBF8F8;
+      --border: #E5E1E4;
+      --text:   #47404E;
+      --muted:  #8A8494;
+      --green:  #1C8B6A;
+      --white:  #ffffff;
+    }
+    body { font-family: "DM Sans", sans-serif; background: var(--light); color: var(--dark); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    .page { max-width: 900px; margin: 0 auto; padding: 60px 32px 120px; }
+    .doc-header { border-bottom: 1px solid var(--border); padding-bottom: 32px; margin-bottom: 56px; }
+    .doc-label { font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.1em; color: var(--orange); text-transform: uppercase; margin-bottom: 12px; }
+    .doc-title { font-size: 36px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 8px; }
+    .doc-sub { font-size: 15px; color: var(--muted); }
+    .section { margin-bottom: 64px; }
+    .section-num { font-family: "DM Mono", monospace; font-size: 11px; color: var(--orange); letter-spacing: 0.08em; margin-bottom: 8px; }
+    .section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .section-body { font-size: 15px; color: var(--text); line-height: 1.75; margin-bottom: 24px; }
+    .flow { display: flex; flex-direction: column; margin: 32px 0; }
+    .flow-item { display: flex; gap: 20px; }
+    .flow-left { display: flex; flex-direction: column; align-items: center; width: 40px; flex-shrink: 0; }
+    .flow-dot { width: 32px; height: 32px; border-radius: 50%; background: var(--orange); color: #fff; font-family: "DM Mono", monospace; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 1; }
+    .flow-line { width: 1px; flex: 1; background: var(--border); margin: 4px 0; min-height: 32px; }
+    .flow-item:last-child .flow-line { display: none; }
+    .flow-content { padding-bottom: 32px; flex: 1; }
+    .flow-content h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; padding-top: 6px; }
+    .flow-content p { font-size: 14px; color: var(--text); line-height: 1.7; }
+    .code-block { background: var(--dark); border-radius: 8px; padding: 24px; margin: 20px 0; overflow-x: auto; }
+    .code-block pre { font-family: "DM Mono", monospace; font-size: 13px; color: #e2dfe8; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+    .cm { color: #8A8494; } .cs { color: #7dd3a8; } .ck { color: #f9a86b; } .cv { color: #9ec6f3; } .co { color: #F16324; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 20px 0; }
+    thead tr { background: var(--dark); color: #fff; }
+    th { font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.06em; font-weight: 500; padding: 10px 16px; text-align: left; }
+    td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
+    .tag { display: inline-block; font-family: "DM Mono", monospace; font-size: 10px; padding: 2px 8px; border-radius: 3px; font-weight: 500; }
+    .tag-faq  { background: rgba(241,99,36,0.12); color: var(--orange); }
+    .tag-help { background: rgba(107,73,178,0.12); color: var(--purple); }
+    .tag-home { background: rgba(28,139,106,0.12); color: var(--green); }
+    .tag-blog { background: rgba(0,0,0,0.06); color: var(--dark); }
+    .tag-other{ background: rgba(0,0,0,0.06); color: var(--muted); }
+    .info-box { border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: 6px; padding: 16px 20px; margin: 20px 0; font-size: 14px; color: var(--text); line-height: 1.7; }
+    .info-box strong { color: var(--dark); }
+    .example { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 20px 0; }
+    .example-header { background: var(--dark); color: #fff; font-family: "DM Mono", monospace; font-size: 11px; letter-spacing: 0.08em; padding: 8px 16px; }
+    .example-body { padding: 20px; font-size: 14px; color: var(--text); line-height: 1.75; }
+    .example-body strong { color: var(--dark); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+    .col-card { border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+    .col-card h5 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .col-card p { font-size: 13px; color: var(--text); line-height: 1.65; }
+    .priority-list { list-style: none; margin: 20px 0; display: flex; flex-direction: column; gap: 8px; }
+    .priority-list li { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text); padding: 10px 16px; border: 1px solid var(--border); border-radius: 6px; }
+    .pri-rank { font-family: "DM Mono", monospace; font-size: 11px; color: var(--muted); width: 20px; flex-shrink: 0; }
+    .pri-cap { margin-left: auto; font-family: "DM Mono", monospace; font-size: 11px; color: var(--orange); }
+    hr { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <div class="doc-header">
+    <div class="doc-label">Internal Reference</div>
+    <h1 class="doc-title">FAQ Scraper — Full Workflow</h1>
+    <p class="doc-sub">How the lead magnet works end to end, including URL discovery, page selection, LLM extraction, and delivery.</p>
+  </div>
+
+  <div class="section">
+    <div class="section-num">00 — OVERVIEW</div>
+    <h2 class="section-title">The Big Picture</h2>
+    <p class="section-body">A user submits competitor URLs + their email on the form page. Your server scrapes those sites, extracts every FAQ question and answer it can find, builds a CSV, and emails it to them. The whole thing runs in the background so the user does not wait on a loading screen.</p>
+    <div class="flow">
+      <div class="flow-item">
+        <div class="flow-left"><div class="flow-dot">1</div><div class="flow-line"></div></div>
+        <div class="flow-content"><h4>User submits the form</h4><p>Pastes competitor URLs + their email at <strong>faq.intelligentresources.app</strong>. LocalStorage is checked first — if they already submitted from this browser, they see the "Already Claimed" page without hitting the server.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-left"><div class="flow-dot">2</div><div class="flow-line"></div></div>
+        <div class="flow-content"><h4>POST /scrape — job created</h4><p>Server checks <strong>submitted_emails.json</strong>. If already recorded → returns <code>status: "already_submitted"</code>. Otherwise → records email, creates job ID, starts background scrape, returns <code>{ job_id, status: "processing" }</code> instantly.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-left"><div class="flow-dot">3</div><div class="flow-line"></div></div>
+        <div class="flow-content"><h4>n8n picks up and polls</h4><p>n8n receives job_id. If <code>already_submitted</code> → sends "already claimed" email and stops. Otherwise waits 10s, then polls <strong>GET /result/{job_id}</strong> every 10s until done.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-left"><div class="flow-dot">4</div><div class="flow-line"></div></div>
+        <div class="flow-content"><h4>Background scrape runs</h4><p>For each URL: discover pages → categorise → select up to 15 → fetch content → send to LLM → extract Q&amp;A → deduplicate → build CSV.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-left"><div class="flow-dot">5</div><div class="flow-line"></div></div>
+        <div class="flow-content"><h4>n8n delivers the email</h4><p>Gets <code>status: "done"</code> with base64 CSV. Decodes it, attaches to Gmail, sends to user. If no FAQs found, sends a "no content found" email instead.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="section-num">01 — URL DISCOVERY</div>
+    <h2 class="section-title">Finding Pages to Scrape</h2>
+    <p class="section-body">Given a single URL like <code>kynection.com.au</code>, the scraper finds all pages worth checking using two sources simultaneously, then merges them.</p>
+    <div class="two-col">
+      <div class="col-card"><h5>Firecrawl Map</h5><p>Crawls the site by following &lt;a&gt; links — up to 500 URLs including subdomains. Good at finding linked pages but misses pages not in the navigation.</p></div>
+      <div class="col-card"><h5>Sitemap Parser</h5><p>Fetches /sitemap.xml directly. Catches pages that exist but are not linked anywhere. Always runs alongside Firecrawl, never just a fallback.</p></div>
+    </div>
+    <div class="info-box"><strong>Help subdomains:</strong> If Firecrawl finds help.kynection.com or docs.kynection.com, it runs a full separate map on that subdomain.</div>
+    <div class="info-box"><strong>MadCap Flare:</strong> Some help centres render entirely in JavaScript — Firecrawl only finds 1 page. The scraper detects this, fetches /Data/HelpSystem.js, and follows the table-of-contents to pull all page URLs manually.</div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="section-num">02 — CATEGORISATION</div>
+    <h2 class="section-title">Sorting Every Discovered URL</h2>
+    <p class="section-body">Each discovered URL gets one of five categories based on its path. This determines priority order for selection.</p>
+    <table>
+      <thead><tr><th>Category</th><th>How detected</th><th>Example URLs</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag tag-faq">faq</span></td><td>Path contains: faq, faqs, frequently-asked</td><td>kynection.com/faq</td></tr>
+        <tr><td><span class="tag tag-help">help</span></td><td>Path contains: help, support, docs, kb, knowledge-base</td><td>site.com/help-centre</td></tr>
+        <tr><td><span class="tag tag-home">home</span></td><td>Root path only: /</td><td>kynection.com.au/</td></tr>
+        <tr><td><span class="tag tag-blog">article_index</span></td><td>Blog keyword but no post slug after it</td><td>site.com/blog</td></tr>
+        <tr><td><span class="tag tag-blog">article_post</span></td><td>Blog keyword + slug (2+ hyphens OR segment &gt;20 chars)</td><td>kynection.com/top-5-fleet-inspection-tools</td></tr>
+        <tr><td><span class="tag tag-other">other</span></td><td>Everything else: service, pricing, features, about</td><td>intelligentresourcing.co/clay-workflow-expert</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box"><strong>Slug detection:</strong> <code>case-studies</code> = 1 hyphen = index page. <code>top-5-vehicle-inspection-software</code> = 4 hyphens = post slug.</div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="section-num">03 — PAGE SELECTION</div>
+    <h2 class="section-title">Picking Which Pages to Scrape</h2>
+    <p class="section-body">Up to <strong>15 pages per submitted URL</strong> are selected in priority order. Unused slots from a higher category flow down to the next.</p>
+    <ul class="priority-list">
+      <li><span class="pri-rank">1st</span><span class="tag tag-faq">faq</span> Dedicated FAQ pages <span class="pri-cap">max 3</span></li>
+      <li><span class="pri-rank">2nd</span><span class="tag tag-help">help</span> Help/support/docs pages <span class="pri-cap">max 1</span></li>
+      <li><span class="pri-rank">3rd</span><span class="tag tag-home">home</span> Homepage <span class="pri-cap">max 1</span></li>
+      <li><span class="pri-rank">4th</span><span class="tag tag-blog">article_index</span> Blog/content index pages <span class="pri-cap">max 2</span></li>
+      <li><span class="pri-rank">5th</span><span class="tag tag-blog">article_post</span> Individual blog posts <span class="pri-cap">max 5</span></li>
+      <li><span class="pri-rank">6th</span><span class="tag tag-other">other</span> Service, pricing, feature pages — shortest path first <span class="pri-cap">fill all remaining</span></li>
+    </ul>
+    <div class="example">
+      <div class="example-header">EXAMPLE — kynection.com.au (no /faq page)</div>
+      <div class="example-body">
+        0 faq pages → 0 slots used.<br>
+        1 help page → 1 slot.<br>
+        1 home → 1 slot.<br>
+        2 blog indexes → 2 slots.<br>
+        5 blog posts → 5 slots (capped).<br>
+        <strong>6 remaining slots</strong> → filled by "other" pages: /about, /pricing, /fleet-management, /integrations, /compliance, /contact.<br><br>
+        Total: <strong>15 pages scraped</strong>.
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="section-num">04 — CONTENT FETCHING</div>
+    <h2 class="section-title">Getting the Text from Each Page</h2>
+    <p class="section-body">Every page is fetched two ways. Whichever produces more text wins.</p>
+    <div class="two-col">
+      <div class="col-card"><h5>Static HTTP (requests + BeautifulSoup)</h5><p>Raw HTML before JavaScript runs. Catches CSS-hidden content like Webflow accordion answers (display:none) that a browser strips from the live DOM.</p></div>
+      <div class="col-card"><h5>Firecrawl rawHtml (headless browser)</h5><p>Full browser render. Catches JavaScript-rendered content (React/Vue SPAs) that does not exist in static HTML.</p></div>
+    </div>
+    <div class="info-box"><strong>Max 60,000 characters</strong> per page are sent to the LLM. Content beyond that is truncated to avoid cutting off FAQ sections near the bottom of long pages.</div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="section-num">05 — LLM EXTRACTION</div>
+    <h2 class="section-title">Extracting Q&amp;A Pairs with AI</h2>
+    <p class="section-body">Cleaned page text is sent to <strong>Claude Haiku 4.5 via OpenRouter</strong>. The prompt returns a JSON array of question/answer pairs.</p>
+
+    <p style="font-size:13px; color:var(--muted); margin-bottom:8px; font-family:'DM Mono',monospace; letter-spacing:0.05em;">THE EXACT PROMPT</p>
+    <div class="code-block"><pre><span class="cs">You are a data extraction assistant. Given the text content of a web page, extract FAQ-style question and answer pairs.</span>
+
+<span class="ck">Rules:</span>
+<span class="cv">1.</span> Extract EXPLICIT Q&A pairs — where a question is clearly written out (with or without a "?").
+<span class="cv">2.</span> Also extract IMPLIED Q&A pairs — where a descriptive heading is directly followed by a paragraph that clearly explains it. Convert the heading into a natural question (e.g. "How we handle onboarding" → "How do you handle onboarding?"). Skip vague labels, CTAs, navigation text, or headings with no meaningful body paragraph.
+<span class="cv">3.</span> For dedicated FAQ pages: extract every Q&A pair found.
+<span class="cv">4.</span> For blog posts: extract explicit FAQ sections only. Return [] if none.
+<span class="cv">5.</span> Keep answers concise — key info only, no marketing fluff. Max 500 characters per answer.
+<span class="cv">6.</span> Return ONLY valid JSON. No markdown, no explanation, no code fences.
+
+<span class="ck">Return format:</span>
+<span class="co">[
+  {"question": "What is X?", "answer": "X is..."},
+  {"question": "How does Y work?", "answer": "Y works by..."}
+]</span>
+
+If no extractable content is found, return: <span class="co">[]</span>
+
+<span class="ck">Page content:</span>
+---
+<span class="cm">[ page text — up to 60,000 characters ]</span>
+---</pre></div>
+
+    <div class="example">
+      <div class="example-header">EXAMPLE 1 — Explicit FAQ page</div>
+      <div class="example-body">
+        <strong>Page text:</strong><br>
+        "Does Kynection work offline?<br>Yes. The mobile app stores data locally and syncs when connectivity is restored."<br><br>
+        <strong>LLM returns:</strong><br>
+        <code>[{"question": "Does Kynection work offline?", "answer": "Yes. The app stores data locally and syncs when back online."}]</code>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">EXAMPLE 2 — Implied Q&A from service page heading (new)</div>
+      <div class="example-body">
+        <strong>Page text:</strong><br>
+        "How we handle onboarding<br>Every new client gets a dedicated onboarding specialist for the first 30 days. We configure your workflows, train your team, and run a sign-off session before going live."<br><br>
+        <strong>LLM returns:</strong><br>
+        <code>[{"question": "How do you handle onboarding?", "answer": "Every new client gets a dedicated onboarding specialist for 30 days. We configure workflows, train your team, and run a sign-off before go-live."}]</code>
+      </div>
+    </div>
+
+    <div class="example">
+      <div class="example-header">EXAMPLE 3 — Heading the LLM will SKIP</div>
+      <div class="example-body">
+        <strong>Page text:</strong><br>
+        "Get Started Today<br>Book a free demo."<br><br>
+        <strong>LLM returns:</strong> <code>[]</code> — CTA heading with no meaningful explanatory content.
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="section-num">06 — DEDUPLICATION &amp; OUTPUT</div>
+    <h2 class="section-title">Cleaning Up and Delivering</h2>
+    <p class="section-body">Results are deduplicated by exact question text across all pages. Same question on two pages = appears once. The final CSV has five columns:</p>
+    <table>
+      <thead><tr><th>Competitor</th><th>Source URL</th><th>Question</th><th>Answer</th><th>Date</th></tr></thead>
+      <tbody>
+        <tr><td>Kynection</td><td>kynection.com.au/faq</td><td>Does Kynection work offline?</td><td>Yes. The app stores data locally and syncs when back online.</td><td>2026-03-20</td></tr>
+        <tr><td>Kynection</td><td>kynection.com.au/fleet-management</td><td>How do you handle vehicle compliance tracking?</td><td>Kynection automates compliance checklists, sends alerts before due dates, and logs all inspections digitally.</td><td>2026-03-20</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box">The CSV is <strong>base64-encoded</strong> and stored in memory on the job result. n8n decodes it and attaches it to Gmail. It is never written to disk.</div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="section-num">07 — ONE PER PERSON GATE</div>
+    <h2 class="section-title">How the One-Report-Per-Email Rule Works</h2>
+    <div class="flow">
+      <div class="flow-item">
+        <div class="flow-left"><div class="flow-dot" style="background:var(--purple);">A</div><div class="flow-line"></div></div>
+        <div class="flow-content"><h4>LocalStorage check (browser)</h4><p>On page load the browser checks for key <code>ir_faq_submitted</code>. If found → shows "Already Claimed" page immediately, no server request made.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-left"><div class="flow-dot" style="background:var(--purple);">B</div><div class="flow-line"></div></div>
+        <div class="flow-content"><h4>Server-side email check</h4><p>Even if localStorage is cleared (private browsing, new device), the server checks <code>submitted_emails.json</code>. If email is recorded → returns <code>status: "already_submitted"</code>.</p></div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-left"><div class="flow-dot" style="background:var(--purple);">C</div><div class="flow-line"></div></div>
+        <div class="flow-content"><h4>n8n sends "already claimed" email</h4><p>n8n receives <code>already_submitted</code> → sends email telling the user their report was already sent → directs them to book a strategy call.</p></div>
+      </div>
+    </div>
+    <div class="info-box"><strong>Where is submitted_emails.json stored?</strong> On the Coolify server filesystem, same directory as api.py. Persists across restarts. Would be wiped if the container volume is reset.</div>
+  </div>
+
+  <hr>
+
+  <div class="section">
+    <div class="section-num">08 — FILES</div>
+    <h2 class="section-title">What Each File Does</h2>
+    <table>
+      <thead><tr><th>File</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>api.py</code></td><td>FastAPI server. Handles POST /scrape and GET /result. URL discovery, categorisation, page selection, content fetching. Runs on Coolify port 8000.</td></tr>
+        <tr><td><code>extractor.py</code></td><td>LLM extraction. Sends page text to Claude Haiku via OpenRouter, parses JSON response. Also contains free extraction fallback (schema.org + HTML patterns).</td></tr>
+        <tr><td><code>scraper.py</code></td><td>Internal pipeline only (not the lead magnet). Reads competitor URLs from Google Sheets, runs the scrape, writes results back to Sheets.</td></tr>
+        <tr><td><code>sheets.py</code></td><td>Google Sheets I/O via gspread. Used only by the internal pipeline.</td></tr>
+        <tr><td><code>index.html</code></td><td>Lead magnet frontend. Three page states: form, success, claimed. JS handles form submission, polling, and localStorage gate.</td></tr>
+        <tr><td><code>submitted_emails.json</code></td><td>Server-side email dedup store. Created automatically on first submission.</td></tr>
+        <tr><td><code>config.json</code></td><td>LLM provider/model settings and per-domain overrides for the internal pipeline.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</body>
+</html>

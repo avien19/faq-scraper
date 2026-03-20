@@ -5,14 +5,14 @@ import re
 from bs4 import BeautifulSoup
 
 
-EXTRACTION_PROMPT = """You are a data extraction assistant. Given the text content of a web page, extract all FAQ-style question and answer pairs.
+EXTRACTION_PROMPT = """You are a data extraction assistant. Given the text content of a web page, extract FAQ-style question and answer pairs.
 
 Rules:
-1. Extract ONLY explicit question-and-answer pairs. A question must be clearly stated (or implied as a heading/subheading followed by explanatory text).
-2. For dedicated FAQ pages: extract every Q&A pair.
-3. For blog posts: extract only sections that are formatted as FAQs (e.g., "Frequently Asked Questions" sections, Q&A formatted content). If the page has no FAQ section, return an empty list.
-4. Keep the question text exactly as written on the page.
-5. Keep the answer concise - include the key information but trim excessive marketing language. Maximum 500 characters per answer.
+1. Extract EXPLICIT Q&A pairs — where a question is clearly written out (with or without a "?").
+2. Also extract IMPLIED Q&A pairs — where a descriptive heading (h2/h3/h4 or bold text) is directly followed by a paragraph that clearly explains it. Convert the heading into a natural question (e.g. "How we handle onboarding" → "How do you handle onboarding?"). Only do this if the following text genuinely answers the heading as a topic — skip vague labels, CTAs, navigation text, or headings with no meaningful body paragraph.
+3. For dedicated FAQ pages: extract every Q&A pair found.
+4. For blog posts: extract explicit FAQ sections only. Return [] if none.
+5. Keep answers concise — key information only, no marketing fluff. Maximum 500 characters per answer.
 6. Return ONLY valid JSON. No markdown, no explanation, no code fences.
 
 Return format:
@@ -21,7 +21,7 @@ Return format:
   {{"question": "How does Y work?", "answer": "Y works by..."}}
 ]
 
-If no FAQ content is found, return: []
+If no extractable content is found, return: []
 
 Page content:
 ---
