@@ -6,896 +6,1110 @@
   <title>Free Competitor FAQ Report | Intelligent Resourcing</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600;1,700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ─────────────────────────────────────────────────────────────────
-       SHARED
-    ───────────────────────────────────────────────────────────────── */
-
-    .grid-bg {
-      background-color: #f9f8f6;
-      background-image:
-        linear-gradient(rgba(0,0,0,0.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,0.045) 1px, transparent 1px);
-      background-size: 40px 40px;
+    :root {
+      --dark:    #14141C;
+      --orange:  #F16324;
+      --purple:  #6B49B2;
+      --light:   #FBF8F8;
+      --white:   #FFFFFF;
+      --border:  #E5E1E4;
+      --text:    #47404E;
+      --muted:   #8A8494;
+      --grid:    #DBD7DA;
     }
 
-    .nav-bar {
-      padding: 22px 48px;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      background: rgba(249,248,246,0.88);
-      backdrop-filter: blur(8px);
+    html, body { height: 100%; }
+
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--dark);
+      background: var(--light);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Crosshatch grid background ── */
+    .crosshatch {
+      background-color: var(--light);
+      background-image:
+        repeating-linear-gradient(
+          -45deg,
+          transparent,
+          transparent 18px,
+          var(--grid) 18px,
+          var(--grid) 18.5px
+        ),
+        repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 18px,
+          var(--grid) 18px,
+          var(--grid) 18.5px
+        );
+    }
+
+    /* ── Nav ── */
+    .nav {
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 100;
+      background: var(--dark);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 0 48px;
+      height: 56px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
     .nav-brand {
-      font-family: "Space Grotesk", sans-serif;
+      font-family: "DM Sans", sans-serif;
       font-size: 14px;
       font-weight: 600;
-      color: #0d0d0d;
-      letter-spacing: -0.01em;
+      color: #fff;
+      letter-spacing: -0.02em;
       text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .nav-tag {
-      font-size: 12px;
+    .nav-brand-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--orange);
+    }
+
+    .nav-link {
+      font-family: "DM Sans", sans-serif;
+      font-size: 13px;
       font-weight: 500;
-      color: #888;
-      background: rgba(0,0,0,0.05);
-      border-radius: 4px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .nav-link:hover { color: #fff; }
+
+    /* ── Pill / badge ── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: "DM Mono", monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
       padding: 4px 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(241,99,36,0.35);
+      color: var(--orange);
+      background: rgba(241,99,36,0.06);
+      margin-bottom: 24px;
     }
 
-    /* ─────────────────────────────────────────────────────────────────
+    .pill-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--orange);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.25; }
+    }
+
+    /* ════════════════════════════════
        FORM PAGE
-    ───────────────────────────────────────────────────────────────── */
+    ════════════════════════════════ */
 
-    body.page-form {
-      font-family: "Inter", system-ui, sans-serif;
-      min-height: 100vh;
+    .form-page {
+      min-height: calc(100vh - 56px);
       display: flex;
       flex-direction: column;
     }
 
-    body.page-form > #form-page {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .form-main {
+    .form-hero {
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 64px 24px;
+      padding: 80px 24px 64px;
     }
 
-    .form-inner { max-width: 520px; width: 100%; }
-
-    .form-kicker {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #ff7433;
-      margin-bottom: 20px;
+    .form-hero-inner {
+      width: 100%;
+      max-width: 560px;
     }
 
     .form-headline {
-      font-size: clamp(36px, 5vw, 52px);
-      line-height: 1.08;
-      letter-spacing: -0.025em;
-      color: #0d0d0d;
-      margin-bottom: 20px;
-    }
-
-    .form-headline .serif {
-      font-family: "Cormorant Garamond", serif;
-      font-style: italic;
+      font-family: "DM Sans", sans-serif;
+      font-size: clamp(32px, 5vw, 52px);
       font-weight: 700;
-      font-size: 1.08em;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--dark);
+      margin-bottom: 16px;
     }
 
-    .form-headline .sans {
-      font-family: "Space Grotesk", sans-serif;
-      font-weight: 700;
-      display: block;
+    .form-headline em {
+      font-family: "Great Vibes", cursive;
+      font-style: normal;
+      font-weight: 400;
+      color: var(--orange);
+      font-size: 1.15em;
+      letter-spacing: 0;
     }
 
-    .form-subtitle {
+    .form-sub {
       font-size: 15px;
-      color: #666;
+      color: var(--text);
       line-height: 1.7;
       margin-bottom: 36px;
-      max-width: 440px;
     }
 
-    .proof-strip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: #999;
-      margin-bottom: 32px;
+    .form-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 32px;
     }
 
-    .proof-dots { display: flex; }
-
-    .proof-dot {
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      border: 2px solid #f9f8f6;
-      background: #e0ddd8;
-      margin-left: -6px;
-    }
-    .proof-dot:first-child { margin-left: 0; }
-
-    .field { margin-bottom: 16px; }
+    .field { margin-bottom: 20px; }
 
     .field label {
       display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: #0d0d0d;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      margin-bottom: 7px;
+      font-family: "DM Mono", monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
     }
 
     .field label .hint {
+      color: var(--muted);
       font-weight: 400;
-      text-transform: none;
-      letter-spacing: 0;
-      color: #aaa;
+      margin-left: 6px;
     }
 
-    .field input,
-    .field textarea {
+    .field textarea,
+    .field input[type="email"] {
       width: 100%;
-      background: #fff;
-      border: 1px solid #d4d0cb;
-      border-radius: 3px;
-      padding: 11px 14px;
-      font-size: 14px;
-      font-family: "Inter", sans-serif;
-      color: #0d0d0d;
-      outline: none;
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-family: "DM Mono", monospace;
+      font-size: 13px;
+      color: var(--dark);
       resize: vertical;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+      transition: border-color 0.15s;
     }
 
-    .field input::placeholder,
-    .field textarea::placeholder { color: #bbb; }
-
-    .field input:focus,
-    .field textarea:focus {
-      border-color: #0d0d0d;
-      box-shadow: 0 0 0 3px rgba(13,13,13,0.06);
+    .field textarea:focus,
+    .field input[type="email"]:focus {
+      border-color: var(--orange);
     }
 
-    .field textarea { min-height: 110px; }
+    .field textarea { min-height: 96px; }
 
-    .btn-primary {
+    .field textarea::placeholder,
+    .field input[type="email"]::placeholder {
+      color: var(--muted);
+    }
+
+    .submit-btn {
       width: 100%;
-      padding: 13px 20px;
-      background: #0d0d0d;
-      color: #f9f8f6;
-      border: 1px solid #0d0d0d;
-      border-radius: 3px;
-      font-size: 14px;
-      font-weight: 600;
-      font-family: "Space Grotesk", sans-serif;
-      letter-spacing: -0.01em;
-      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 7px;
-      transition: background 0.15s;
-      margin-top: 8px;
+      gap: 10px;
+      padding: 14px 24px;
+      background: var(--orange);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-family: "DM Sans", sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
     }
 
-    .btn-primary:hover { background: #2a2a2a; }
-    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .submit-btn:hover { background: #d4541a; }
+    .submit-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
 
     .spinner {
-      width: 13px; height: 13px;
-      border: 2px solid rgba(249,248,246,0.3);
-      border-top-color: #f9f8f6;
+      display: none;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
-      display: none;
     }
+
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .error-msg {
       display: none;
-      background: #fff8f8;
-      border: 1px solid #f5c5c5;
-      color: #c0392b;
-      font-size: 13px;
-      padding: 10px 14px;
-      border-radius: 3px;
       margin-top: 12px;
+      padding: 10px 14px;
+      background: rgba(220,38,38,0.06);
+      border: 1px solid rgba(220,38,38,0.25);
+      border-radius: 6px;
+      font-family: "DM Mono", monospace;
+      font-size: 12px;
+      color: #dc2626;
     }
 
     .privacy-note {
-      font-size: 12px;
-      color: #aaa;
       margin-top: 16px;
-    }
-
-    /* ─────────────────────────────────────────────────────────────────
-       SUCCESS PAGE
-    ───────────────────────────────────────────────────────────────── */
-
-    body.page-success {
-      font-family: "Inter", system-ui, sans-serif;
-      background: #f9f8f6;
-    }
-
-    /* — Hero — */
-    .s-hero {
-      padding: 80px 24px 72px;
+      font-family: "DM Mono", monospace;
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.6;
       text-align: center;
-      max-width: 760px;
+    }
+
+    /* ════════════════════════════════
+       SUCCESS PAGE
+    ════════════════════════════════ */
+
+    /* Inbox strip */
+    .inbox-strip {
+      background: var(--dark);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: "DM Mono", monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .inbox-strip-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #1C8B6A;
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    /* AEO hero */
+    .aeo-hero {
+      padding: 96px 24px 80px;
+      text-align: center;
+    }
+
+    .aeo-hero-inner {
+      max-width: 700px;
       margin: 0 auto;
     }
 
-    .s-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      border: 1px solid rgba(255,116,51,0.35);
-      border-radius: 3px;
-      padding: 5px 14px;
-      font-size: 11px;
-      font-weight: 600;
-      font-family: "Space Grotesk", sans-serif;
-      color: #ff7433;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 28px;
-    }
-
-    .s-badge::before {
-      content: "";
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: #ff7433;
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.3; }
-    }
-
-    .s-headline {
-      font-family: "Cormorant Garamond", serif;
-      font-size: clamp(48px, 8vw, 80px);
+    .section-headline {
+      font-family: "DM Sans", sans-serif;
+      font-size: clamp(32px, 5vw, 52px);
       font-weight: 700;
-      font-style: italic;
-      line-height: 1.0;
-      letter-spacing: -0.02em;
-      color: #0d0d0d;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--dark);
       margin-bottom: 20px;
     }
 
-    .s-sub {
-      font-size: 16px;
-      color: #666;
+    .section-headline em {
+      font-family: "Great Vibes", cursive;
+      font-style: normal;
+      font-weight: 400;
+      color: var(--orange);
+      font-size: 1.2em;
+      letter-spacing: 0;
+    }
+
+    .section-sub {
+      font-size: 15px;
+      color: var(--text);
       line-height: 1.75;
       max-width: 520px;
-      margin: 0 auto;
+      margin: 0 auto 36px;
     }
 
-    /* — Steps card — */
-    .s-steps-wrap {
-      background: #0d0d0d;
-      padding: 64px 24px;
-    }
-
-    .s-steps-inner {
-      max-width: 820px;
-      margin: 0 auto;
-    }
-
-    .s-section-label {
-      font-size: 11px;
-      font-weight: 600;
-      font-family: "Space Grotesk", sans-serif;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #ff7433;
-      margin-bottom: 36px;
-    }
-
-    .s-steps-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 32px;
-    }
-
-    .s-step {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .s-step-num {
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 11px;
-      font-weight: 600;
-      color: #ff7433;
-      letter-spacing: 0.06em;
-    }
-
-    .s-step h3 {
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 15px;
-      font-weight: 600;
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--orange);
       color: #fff;
-      letter-spacing: -0.01em;
-    }
-
-    .s-step p {
-      font-size: 13px;
-      color: #555;
-      line-height: 1.65;
-    }
-
-    .s-step-divider {
-      width: 32px;
-      height: 1px;
-      background: #2a2a2a;
-    }
-
-    /* — Services section — */
-    .s-services-wrap {
-      padding: 80px 24px;
-    }
-
-    .s-services-inner {
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    .s-section-header {
-      margin-bottom: 48px;
-    }
-
-    .s-section-kicker {
-      font-size: 11px;
-      font-weight: 600;
-      font-family: "Space Grotesk", sans-serif;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: #ff7433;
-      margin-bottom: 14px;
-    }
-
-    .s-section-title {
-      font-family: "Cormorant Garamond", serif;
-      font-size: clamp(32px, 4vw, 46px);
-      font-weight: 700;
-      font-style: italic;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-      color: #0d0d0d;
-      margin-bottom: 12px;
-    }
-
-    .s-section-desc {
-      font-size: 15px;
-      color: #666;
-      line-height: 1.7;
-      max-width: 540px;
-    }
-
-    .s-services-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
-    }
-
-    .s-service-card {
-      background: #fff;
-      border: 1px solid #e8e5e0;
+      padding: 12px 24px;
       border-radius: 6px;
-      padding: 28px 28px 32px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-
-    .s-service-card:hover {
-      border-color: #0d0d0d;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-    }
-
-    .s-service-icon {
-      width: 32px;
-      height: 32px;
-      margin-bottom: 4px;
-      color: #ff7433;
-    }
-
-    .s-service-icon svg {
-      width: 100%;
-      height: 100%;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 1.5;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .s-service-tag {
-      font-size: 10px;
-      font-weight: 600;
-      font-family: "Space Grotesk", sans-serif;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #ff7433;
-    }
-
-    .s-service-card h3 {
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 16px;
-      font-weight: 600;
-      color: #0d0d0d;
-      letter-spacing: -0.01em;
-    }
-
-    .s-service-card p {
-      font-size: 13px;
-      color: #666;
-      line-height: 1.65;
-      flex: 1;
-    }
-
-    .s-service-link {
-      font-size: 12px;
-      font-weight: 600;
-      font-family: "Space Grotesk", sans-serif;
-      color: #0d0d0d;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      margin-top: 4px;
-    }
-
-    .s-service-link:hover { color: #ff7433; }
-
-    /* — CTA band — */
-    .s-cta-wrap {
-      background: #0d0d0d;
-      padding: 80px 24px;
-    }
-
-    .s-cta-inner {
-      max-width: 760px;
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .s-cta-inner .s-section-label { color: #ff7433; }
-
-    .s-cta-headline {
-      font-family: "Cormorant Garamond", serif;
-      font-size: clamp(36px, 5vw, 56px);
-      font-weight: 700;
-      font-style: italic;
-      line-height: 1.05;
-      letter-spacing: -0.02em;
-      color: #fff;
-      margin-bottom: 16px;
-    }
-
-    .s-cta-sub {
-      font-size: 15px;
-      color: #666;
-      line-height: 1.7;
-      margin-bottom: 36px;
-      max-width: 480px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .s-cta-sub { margin-bottom: 36px; }
-
-    .btn-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 14px 32px;
-      background: #ff7433;
-      color: #fff;
-      border: none;
-      border-radius: 3px;
+      font-family: "DM Sans", sans-serif;
       font-size: 14px;
       font-weight: 600;
-      font-family: "Space Grotesk", sans-serif;
-      letter-spacing: -0.01em;
-      cursor: pointer;
       text-decoration: none;
-      transition: background 0.15s;
+      letter-spacing: -0.01em;
+      transition: background 0.15s, transform 0.15s;
     }
 
-    .btn-cta:hover { background: #e5611e; }
+    .btn-primary:hover { background: #d4541a; transform: translateY(-1px); }
 
-    .btn-outline {
+    .btn-secondary {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 13px 28px;
       background: transparent;
-      color: #fff;
-      border: 1px solid #333;
-      border-radius: 3px;
+      color: var(--dark);
+      padding: 11px 22px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: "DM Sans", sans-serif;
       font-size: 14px;
-      font-weight: 600;
-      font-family: "Space Grotesk", sans-serif;
-      letter-spacing: -0.01em;
-      cursor: pointer;
+      font-weight: 500;
       text-decoration: none;
-      transition: border-color 0.15s, color 0.15s;
+      letter-spacing: -0.01em;
+      transition: border-color 0.15s;
     }
 
-    .btn-outline:hover { border-color: #666; color: #ccc; }
+    .btn-secondary:hover { border-color: var(--dark); }
 
-    .cta-buttons {
+    .btn-group {
       display: flex;
       gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
     }
 
-    /* — Testimonials — */
-    .s-testimonials-wrap {
+    /* Case study */
+    .case-study {
+      background: var(--dark);
       padding: 80px 24px;
     }
 
-    .s-testimonials-inner {
-      max-width: 900px;
+    .case-study-inner {
+      max-width: 1080px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+
+    .cs-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(241,99,36,0.35);
+      color: var(--orange);
+      background: rgba(241,99,36,0.06);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-family: "DM Mono", monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      margin-bottom: 20px;
+    }
+
+    .cs-label::before {
+      content: "";
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--orange);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    .cs-heading {
+      font-family: "DM Sans", sans-serif;
+      font-size: clamp(26px, 3vw, 38px);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .cs-heading .hl {
+      font-family: "Great Vibes", cursive;
+      font-weight: 400;
+      color: var(--orange);
+      font-size: 1.25em;
+      letter-spacing: 0;
+    }
+
+    .cs-body {
+      font-family: "DM Sans", sans-serif;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.8;
+      margin-bottom: 28px;
+    }
+
+    .cs-body strong { color: #E5E1E4; font-weight: 600; }
+
+    .cs-stats {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .cs-stat {
+      flex: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 6px;
+      padding: 18px 12px;
+      text-align: center;
+    }
+
+    .cs-stat.featured {
+      background: rgba(241,99,36,0.08);
+      border-color: rgba(241,99,36,0.25);
+    }
+
+    .cs-stat-num {
+      font-family: "DM Mono", monospace;
+      font-size: 24px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+      line-height: 1;
+    }
+
+    .cs-stat.featured .cs-stat-num { color: var(--orange); }
+
+    .cs-stat-label {
+      font-family: "DM Sans", sans-serif;
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .cs-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--orange);
+      color: #fff;
+      padding: 11px 22px;
+      border-radius: 6px;
+      font-family: "DM Sans", sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s;
+      letter-spacing: -0.01em;
+    }
+
+    .cs-cta:hover { background: #d4541a; }
+
+    .cs-visual { position: relative; }
+
+    .cs-img {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.07);
+      display: block;
+    }
+
+    .cs-badge {
+      position: absolute;
+      bottom: 48px;
+      left: -10px;
+      background: var(--purple);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-family: "DM Mono", monospace;
+      font-size: 11px;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(107,73,178,0.35);
+    }
+
+    .cs-caption {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(20,20,28,0.8);
+      color: var(--muted);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: "DM Mono", monospace;
+      font-size: 10px;
+    }
+
+    /* Services */
+    .services-wrap {
+      background: var(--white);
+      padding: 80px 24px;
+    }
+
+    .services-inner {
+      max-width: 1000px;
       margin: 0 auto;
     }
 
-    .s-testimonials-grid {
+    .section-label {
+      font-family: "DM Mono", monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      color: var(--orange);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-family: "DM Sans", sans-serif;
+      font-size: clamp(24px, 3.5vw, 36px);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      color: var(--dark);
+      margin-bottom: 12px;
+    }
+
+    .section-desc {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.7;
+      max-width: 500px;
+      margin-bottom: 48px;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .service-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px;
+      background: var(--white);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .service-card:hover {
+      border-color: rgba(241,99,36,0.4);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    }
+
+    .service-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--orange);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+
+    .service-card:hover::before { transform: scaleX(1); }
+
+    .service-tag {
+      font-family: "DM Mono", monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--orange);
+      text-transform: uppercase;
+    }
+
+    .service-card h3 {
+      font-family: "DM Sans", sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--dark);
+      letter-spacing: -0.02em;
+    }
+
+    .service-card p {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.65;
+      flex: 1;
+    }
+
+    .service-link {
+      font-family: "DM Sans", sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--dark);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      transition: color 0.15s;
+    }
+
+    .service-link:hover { color: var(--orange); }
+
+    /* Testimonials */
+    .testimonials-wrap {
+      background: var(--light);
+      padding: 80px 24px;
+    }
+
+    .testimonials-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .testimonials-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
+      gap: 16px;
       margin-top: 48px;
     }
 
-    .s-testimonial {
-      background: #fff;
-      border: 1px solid #e8e5e0;
-      border-radius: 6px;
+    .testimonial {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
       padding: 28px;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
 
-    .s-testimonial-stars {
-      color: #ff7433;
-      font-size: 13px;
+    .testimonial-stars {
+      font-size: 12px;
       letter-spacing: 2px;
+      color: var(--orange);
     }
 
-    .s-testimonial blockquote {
-      font-size: 13.5px;
-      color: #333;
+    .testimonial blockquote {
+      font-size: 13px;
+      color: var(--text);
       line-height: 1.7;
       font-style: normal;
       flex: 1;
     }
 
-    .s-testimonial-author {
+    .testimonial-author {
+      font-family: "DM Sans", sans-serif;
       font-size: 12px;
-      font-weight: 600;
-      font-family: "Space Grotesk", sans-serif;
-      color: #0d0d0d;
+      font-weight: 700;
+      color: var(--dark);
       letter-spacing: -0.01em;
     }
 
-    .s-testimonial-role {
-      font-size: 11px;
-      color: #aaa;
+    .testimonial-role {
+      font-family: "DM Mono", monospace;
+      font-size: 10px;
+      color: var(--muted);
       margin-top: 2px;
     }
 
-    /* — Footer — */
-    .s-footer {
-      background: #0d0d0d;
-      padding: 40px 48px;
+    /* CTA band */
+    .cta-band {
+      background: var(--dark);
+      padding: 80px 24px;
+      text-align: center;
+    }
+
+    .cta-band-inner {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .cta-band .section-label { margin-bottom: 16px; }
+
+    .cta-heading {
+      font-family: "DM Sans", sans-serif;
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .cta-heading em {
+      font-family: "Great Vibes", cursive;
+      font-style: normal;
+      font-weight: 400;
+      color: var(--orange);
+      font-size: 1.2em;
+      letter-spacing: 0;
+    }
+
+    .cta-sub {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    /* Footer */
+    .site-footer {
+      background: var(--dark);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 28px 48px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-top: 1px solid #1a1a1a;
     }
 
-    .s-footer-brand {
-      font-family: "Space Grotesk", sans-serif;
-      font-size: 14px;
+    .footer-brand {
+      font-family: "DM Sans", sans-serif;
+      font-size: 13px;
       font-weight: 600;
       color: #fff;
     }
 
-    .s-footer-tagline {
-      font-size: 12px;
-      color: #444;
-      margin-top: 4px;
+    .footer-tagline {
+      font-family: "DM Mono", monospace;
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 3px;
+      letter-spacing: 0.04em;
     }
 
-    .s-footer-links {
+    .footer-links {
       display: flex;
       gap: 24px;
     }
 
-    .s-footer-links a {
+    .footer-links a {
+      font-family: "DM Sans", sans-serif;
       font-size: 12px;
-      color: #555;
+      color: var(--muted);
       text-decoration: none;
       transition: color 0.15s;
     }
 
-    .s-footer-links a:hover { color: #fff; }
+    .footer-links a:hover { color: #fff; }
 
-    /* ─────────────────────────────────────────────────────────────────
+    /* ════════════════════════════════
+       CLAIMED PAGE
+    ════════════════════════════════ */
+
+    .claimed-hero {
+      min-height: calc(100vh - 56px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 64px 24px;
+    }
+
+    .claimed-inner {
+      max-width: 520px;
+    }
+
+    .claimed-heading {
+      font-family: "DM Sans", sans-serif;
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 700;
+      color: var(--dark);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .claimed-heading em {
+      font-family: "Great Vibes", cursive;
+      font-style: normal;
+      font-weight: 400;
+      color: var(--orange);
+      font-size: 1.2em;
+      letter-spacing: 0;
+    }
+
+    .claimed-sub {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    .claimed-note {
+      margin-top: 20px;
+      font-family: "DM Mono", monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ════════════════════════════════
        RESPONSIVE
-    ───────────────────────────────────────────────────────────────── */
+    ════════════════════════════════ */
 
-    @media (max-width: 700px) {
-      .nav-bar { padding: 18px 20px; }
-      .form-main { padding: 44px 20px; }
-      .s-hero { padding: 56px 20px 52px; }
-      .s-steps-wrap, .s-services-wrap, .s-cta-wrap, .s-testimonials-wrap { padding: 56px 20px; }
-      .s-steps-grid { grid-template-columns: 1fr; gap: 28px; }
-      .s-services-grid { grid-template-columns: 1fr; }
-      .s-testimonials-grid { grid-template-columns: 1fr; }
-      .s-footer { flex-direction: column; gap: 20px; text-align: center; padding: 32px 20px; }
-      .s-footer-links { justify-content: center; }
+    @media (max-width: 768px) {
+      .nav { padding: 0 20px; }
+      .case-study-inner { grid-template-columns: 1fr; gap: 40px; }
+      .cs-visual { order: -1; }
+      .services-grid { grid-template-columns: 1fr; }
+      .testimonials-grid { grid-template-columns: 1fr; }
+      .site-footer { flex-direction: column; gap: 20px; text-align: center; padding: 24px 20px; }
+      .footer-links { justify-content: center; }
+      .aeo-hero { padding: 64px 20px 56px; }
+      .case-study { padding: 64px 20px; }
+      .services-wrap, .testimonials-wrap, .cta-band { padding: 64px 20px; }
+      .cs-stats { flex-direction: column; }
     }
   </style>
 </head>
 
-<body class="page-form grid-bg">
+<body>
 
   <!-- ════════════════════════════════════════════════════════════════
        FORM PAGE
   ════════════════════════════════════════════════════════════════ -->
-  <div id="form-page" style="min-height:100vh; display:flex; flex-direction:column;">
+  <div id="form-page">
 
-    <nav class="nav-bar">
-      <span class="nav-brand">Intelligent Resourcing</span>
-      <span class="nav-tag">Free tool</span>
+    <nav class="nav">
+      <a href="https://intelligentresourcing.co" class="nav-brand" target="_blank">
+        <span class="nav-brand-dot"></span>
+        Intelligent Resourcing
+      </a>
+      <a href="https://intelligentresourcing.co" class="nav-link" target="_blank">Visit our site</a>
     </nav>
 
-    <div class="form-main">
-      <div class="form-inner">
+    <div class="form-page crosshatch">
+      <div class="form-hero">
+        <div class="form-hero-inner">
 
-        <span class="form-kicker">Competitor Intelligence</span>
-
-        <h1 class="form-headline">
-          <span class="serif">What are your competitors</span>
-          <span class="sans">actually being asked?</span>
-        </h1>
-
-        <p class="form-subtitle">
-          Paste in a competitor URL. We scan their site, extract every FAQ question and answer, and send you a clean CSV. No account needed.
-        </p>
-
-        <div class="proof-strip">
-          <div class="proof-dots">
-            <span class="proof-dot"></span>
-            <span class="proof-dot"></span>
-            <span class="proof-dot"></span>
-            <span class="proof-dot"></span>
+          <div class="pill">
+            <span class="pill-dot"></span>
+            Competitor Intelligence
           </div>
-          Free to use. Results in your inbox in minutes.
+
+          <h1 class="form-headline">
+            What are your competitors<br><em>actually</em> being asked?
+          </h1>
+
+          <p class="form-sub">
+            Paste in a competitor URL. We scan their site, extract every FAQ question and answer, and send you a clean CSV. No account needed.
+          </p>
+
+          <div class="form-card">
+            <form id="scraper-form" novalidate>
+
+              <div class="field">
+                <label for="urls">Competitor URLs <span class="hint">— one per line</span></label>
+                <textarea
+                  id="urls"
+                  name="urls"
+                  placeholder="https://competitor.com&#10;https://another.com"
+                  rows="3"
+                ></textarea>
+              </div>
+
+              <div class="field" id="email-field">
+                <label for="email">Your email <span class="hint">— we send the CSV here</span></label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="you@company.com"
+                />
+              </div>
+
+              <button type="submit" class="submit-btn" id="submit-btn">
+                <span class="spinner" id="spinner"></span>
+                <span id="btn-text">Get my free report</span>
+              </button>
+
+              <div class="error-msg" id="error-msg"></div>
+
+            </form>
+          </div>
+
+          <p class="privacy-note" id="privacy-note">
+            Free to use. One report per email. We never share your data.
+          </p>
+
         </div>
-
-        <form id="scraper-form" novalidate>
-          <div class="field">
-            <label for="urls">Competitor URLs <span class="hint">one per line</span></label>
-            <textarea
-              id="urls"
-              name="urls"
-              placeholder="https://competitor.com&#10;https://another.com"
-              required
-            ></textarea>
-          </div>
-
-          <div class="field" id="email-field">
-            <label for="email">Your email</label>
-            <input type="email" id="email" name="email" placeholder="you@company.com" required />
-          </div>
-
-          <button type="submit" class="btn-primary" id="submit-btn">
-            <span id="btn-text">Get my free report</span>
-            <span class="spinner" id="spinner"></span>
-          </button>
-
-          <div class="error-msg" id="error-msg"></div>
-        </form>
-
-        <p class="privacy-note" id="privacy-note">No spam. Your email is only used to send this report.</p>
-
       </div>
     </div>
+
   </div>
 
 
   <!-- ════════════════════════════════════════════════════════════════
-       SUCCESS / THANK YOU PAGE
+       SUCCESS PAGE
   ════════════════════════════════════════════════════════════════ -->
   <div id="success-page" style="display:none;">
 
-    <nav class="nav-bar">
-      <span class="nav-brand">Intelligent Resourcing</span>
-      <a href="https://intelligentresourcing.co" class="nav-tag" target="_blank" style="text-decoration:none;">Visit our site</a>
+    <nav class="nav">
+      <a href="https://intelligentresourcing.co" class="nav-brand" target="_blank">
+        <span class="nav-brand-dot"></span>
+        Intelligent Resourcing
+      </a>
+      <a href="https://intelligentresourcing.co" class="nav-link" target="_blank">Visit our site</a>
     </nav>
 
-    <!-- Hero -->
-    <div class="s-hero grid-bg">
-      <div class="s-badge">Report submitted</div>
-      <h1 class="s-headline" id="success-headline">Your report<br>is on its way.</h1>
-      <p class="s-sub" id="success-sub">
-        We're scanning your competitor's site right now, pulling out every FAQ question and answer. Check your inbox in 3 to 5 minutes.
-      </p>
+    <!-- Inbox strip -->
+    <div class="inbox-strip">
+      <span class="inbox-strip-dot"></span>
+      <span id="success-sub">Your Competitor FAQ Report is on its way. Check your inbox in 3 to 5 minutes.</span>
+      <span id="success-headline" style="display:none;"></span>
     </div>
 
-    <!-- What happens next -->
-    <div class="s-steps-wrap">
-      <div class="s-steps-inner">
-        <p class="s-section-label">What happens next</p>
-        <div class="s-steps-grid">
-          <div class="s-step">
-            <span class="s-step-num">01</span>
-            <div class="s-step-divider"></div>
-            <h3>Every page is discovered</h3>
-            <p>Firecrawl maps the site via links, then we cross-check the sitemap to catch pages that aren't linked in the navigation.</p>
+    <!-- AEO Hero -->
+    <div class="aeo-hero crosshatch">
+      <div class="aeo-hero-inner">
+        <div class="pill">
+          <span class="pill-dot"></span>
+          Answer Engine Optimisation
+        </div>
+        <h2 class="section-headline">
+          How to Rank in ChatGPT, Perplexity<br>and Gemini <em>Before Your Competitors</em>
+        </h2>
+        <p class="section-sub">
+          Your buyers are already asking AI tools which vendors to shortlist. Most companies have no idea what those answers say about them. We help you find out, and then we help you show up.
+        </p>
+        <div class="btn-group">
+          <a href="https://intelligentresourcing.co/answer-engine-optimisation" target="_blank" class="btn-primary">See our AEO service</a>
+          <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0hnFcYc_vd0TqgbySr_YLESiC4P3gce9aAW1taEvTavCYE1gwFnOciBgHvNqvlYiiI8qzEFWXO" target="_blank" class="btn-secondary">Book a free call</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Case Study -->
+    <div class="case-study">
+      <div class="case-study-inner">
+        <div>
+          <div class="cs-label">Case Study: Kynection</div>
+          <h2 class="cs-heading">From Invisible to <span class="hl">$100k Pipeline</span> in 30 Days</h2>
+          <p class="cs-body">
+            Kynection was losing the citation war. In just 4 weeks, we deployed the <strong>Answer Factory Protocol</strong> to fix their data.
+            <br><br>
+            We drove an <strong>86% surge in Share of Voice</strong> in just 30 days, overtaking 7 competitors and triggered a <strong>$100k qualified lead</strong> directly from AI search.
+          </p>
+          <div class="cs-stats">
+            <div class="cs-stat">
+              <div class="cs-stat-num">30</div>
+              <div class="cs-stat-label">Days to Result</div>
+            </div>
+            <div class="cs-stat">
+              <div class="cs-stat-num">+86%</div>
+              <div class="cs-stat-label">SOV Increase</div>
+            </div>
+            <div class="cs-stat featured">
+              <div class="cs-stat-num">$100k</div>
+              <div class="cs-stat-label">Pipeline Triggered</div>
+            </div>
           </div>
-          <div class="s-step">
-            <span class="s-step-num">02</span>
-            <div class="s-step-divider"></div>
-            <h3>Highest-value pages selected</h3>
-            <p>FAQ pages first, then help docs, the homepage, blog posts, and service or pricing pages. Up to 15 pages per site.</p>
+          <a href="https://intelligentresourcing.co/contact" class="cs-cta">Audit My Answer Velocity</a>
+        </div>
+        <div class="cs-visual">
+          <img src="https://framerusercontent.com/images/MpY0SjWgqdynP3YZHc7ErNJfJ8Q.png" alt="Kynection AI Share of Voice Dashboard" class="cs-img">
+          <div class="cs-badge">21.2% Market Dominance</div>
+          <div class="cs-caption">Verified Dashboard (Nov–Dec 2025)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Services -->
+    <div class="services-wrap">
+      <div class="services-inner">
+        <div class="section-label">We also help with</div>
+        <h2 class="section-title">The full stack that turns<br>visibility into closed deals.</h2>
+        <p class="section-desc">Getting found is only the start. We help B2B teams build the outbound systems, GTM infrastructure, and teams to turn that visibility into revenue.</p>
+
+        <div class="services-grid">
+          <div class="service-card">
+            <span class="service-tag">Clay Workflows</span>
+            <h3>Reach the right people at the right time</h3>
+            <p>We build Clay workflows that track buying signals like job posts, tech installs, and hiring activity so your team only reaches out when a prospect is actually in market.</p>
+            <a href="https://intelligentresourcing.co/clay-workflow-expert" target="_blank" class="service-link">Learn more →</a>
           </div>
-          <div class="s-step">
-            <span class="s-step-num">03</span>
-            <div class="s-step-divider"></div>
-            <h3>AI extracts every Q&amp;A pair</h3>
-            <p>Claude reads each page and pulls out every question and answer, including from collapsed accordions and hidden sections.</p>
+
+          <div class="service-card">
+            <span class="service-tag">GTM Engineering</span>
+            <h3>Connect your tools so nothing falls through the gaps</h3>
+            <p>We design and build GTM infrastructure that ties your CRM, data, and outbound together using Clay, HubSpot, and n8n so your sales process actually runs the way you planned it.</p>
+            <a href="https://intelligentresourcing.co/gtm-engineering" target="_blank" class="service-link">Learn more →</a>
           </div>
-          <div class="s-step">
-            <span class="s-step-num" id="step4-num">04</span>
-            <div class="s-step-divider"></div>
-            <h3 id="step4-title">CSV lands in your inbox</h3>
-            <p id="step4-desc">One clean file: Competitor, Source URL, Question, Answer, Date. Ready to drop straight into your workflow.</p>
+
+          <div class="service-card">
+            <span class="service-tag">Answer Engine Optimisation</span>
+            <h3>Get recommended by ChatGPT, Perplexity and Gemini</h3>
+            <p>When a buyer asks an AI tool who to hire for your type of work, we make sure your company comes up. We audit, fix the gaps, and grow your share of AI answers month over month.</p>
+            <a href="https://intelligentresourcing.co/answer-engine-optimisation" target="_blank" class="service-link">Learn more →</a>
+          </div>
+
+          <div class="service-card">
+            <span class="service-tag">Offshore Resourcing</span>
+            <h3>Hire great people at up to 70% less cost</h3>
+            <p>We find, screen, and run a paid trial with offshore candidates in your exact role. You interview the top three, make the call, and they join as a direct hire. No agency markup.</p>
+            <a href="https://intelligentresourcing.co/offshore-resourcing" target="_blank" class="service-link">Learn more →</a>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- While you wait: services -->
-    <div class="s-services-wrap grid-bg">
-      <div class="s-services-inner">
-        <div class="s-section-header">
-          <p class="s-section-kicker">While you wait</p>
-          <h2 class="s-section-title">Turn competitor insights<br>into pipeline.</h2>
-          <p class="s-section-desc">Knowing what your competitors are being asked is step one. We help you build the systems that act on it, automatically and at scale.</p>
-        </div>
-
-        <div class="s-services-grid">
-          <div class="s-service-card">
-            <div class="s-service-icon"><svg viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-            <span class="s-service-tag">Clay Workflows</span>
-            <h3>Signal-Based Automation</h3>
-            <p>We track live buying signals (job posts, tech installs, hiring spikes) so you only act when intent is high. Clay turns signals into qualified opportunities when structured using GTM Engineering.</p>
-            <a href="https://intelligentresourcing.co/clay-workflow-expert" target="_blank" class="s-service-link">Learn more →</a>
+    <!-- Testimonials -->
+    <div class="testimonials-wrap">
+      <div class="testimonials-inner">
+        <div class="section-label">What our clients say</div>
+        <h2 class="section-title">Real results, real teams.</h2>
+        <div class="testimonials-grid">
+          <div class="testimonial">
+            <div class="testimonial-stars">★★★★★</div>
+            <blockquote>"We'd heard of tools like Clay and n8n, but had no idea how to use them. Their team built workflows that created results we didn't think were possible without a larger team."</blockquote>
+            <div>
+              <div class="testimonial-author">Sales Operations Lead</div>
+              <div class="testimonial-role">B2B SaaS, Australia</div>
+            </div>
           </div>
-
-          <div class="s-service-card">
-            <div class="s-service-icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="6" height="18"/><rect x="16" y="3" width="6" height="18"/><path d="M8 12h8"/><path d="M8 7h8"/><path d="M8 17h8"/></svg></div>
-            <span class="s-service-tag">GTM Engineering</span>
-            <h3>Systems That Scale Revenue</h3>
-            <p>Designing GTM frameworks that integrate technology, data, and processes across sales and marketing using Clay, HubSpot, and n8n. Built to eliminate the gap between strategy and execution.</p>
-            <a href="https://intelligentresourcing.co/gtm-engineering" target="_blank" class="s-service-link">Learn more →</a>
+          <div class="testimonial">
+            <div class="testimonial-stars">★★★★★</div>
+            <blockquote>"Intelligent Resourcing nailed finding our ICP and delivered a clean list of decision-makers. What would have taken ages to do manually was ready in minutes."</blockquote>
+            <div>
+              <div class="testimonial-author">Founder</div>
+              <div class="testimonial-role">B2B Services, Melbourne</div>
+            </div>
           </div>
-
-          <div class="s-service-card">
-            <div class="s-service-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 11V7"/><circle cx="12" cy="5" r="2"/><path d="M8 15h.01M12 15h.01M16 15h.01"/><path d="M7 11V9a5 5 0 0 1 10 0v2"/></svg></div>
-            <span class="s-service-tag">Answer Engine Optimisation</span>
-            <h3>Stop Losing Leads to AI</h3>
-            <p>When a decision-maker asks ChatGPT or Perplexity "Who is the best provider for [your service]?" the answer should be you. We engineer your content to be cited by AI answer engines.</p>
-            <a href="https://intelligentresourcing.co/answer-engine-optimisation" target="_blank" class="s-service-link">Learn more →</a>
-          </div>
-
-          <div class="s-service-card">
-            <div class="s-service-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg></div>
-            <span class="s-service-tag">Offshore Resourcing</span>
-            <h3>Build Teams, Don't Rent People</h3>
-            <p>Direct hires, fully embedded, up to 70% cost savings. We handle scoping, screening, and paid testing. You get your top 3 pre-qualified candidates and make the final call.</p>
-            <a href="https://intelligentresourcing.co/offshore-resourcing" target="_blank" class="s-service-link">Learn more →</a>
+          <div class="testimonial">
+            <div class="testimonial-stars">★★★★★</div>
+            <blockquote>"Our offshore hire picked things up quickly and fits right into how we work. We've saved around 70% compared to hiring locally, and the quality has been outstanding."</blockquote>
+            <div>
+              <div class="testimonial-author">Operations Manager</div>
+              <div class="testimonial-role">Growth Stage Company</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <!-- CTA band -->
-    <div class="s-cta-wrap">
-      <div class="s-cta-inner">
-        <p class="s-section-label">Ready to go further?</p>
-        <h2 class="s-cta-headline">Relevance scales<br>better than volume.</h2>
-        <p class="s-cta-sub">
-          Book a free strategy call. We'll show you how to turn the insights in your report into a signal-based system that drives qualified pipeline.
+    <div class="cta-band">
+      <div class="cta-band-inner">
+        <div class="section-label">Free AEO Audit</div>
+        <h2 class="cta-heading">See what AI says about you <em>right now.</em></h2>
+        <p class="cta-sub">
+          We run your category live on the call. You see what ChatGPT, Perplexity, and Gemini say about you versus your competitors, and we walk you through what it would take to show up consistently.
         </p>
-        <div class="cta-buttons">
-          <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0hnFcYc_vd0TqgbySr_YLESiC4P3gce9aAW1taEvTavCYE1gwFnOciBgHvNqvlYiiI8qzEFWXO" target="_blank" class="btn-cta">Book a free strategy call</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Testimonials -->
-    <div class="s-testimonials-wrap grid-bg">
-      <div class="s-testimonials-inner">
-        <p class="s-section-kicker">What our clients say</p>
-        <h2 class="s-section-title">Real results,<br>real teams.</h2>
-
-        <div class="s-testimonials-grid">
-          <div class="s-testimonial">
-            <div class="s-testimonial-stars">★★★★★</div>
-            <blockquote>"We'd heard of tools like Clay and n8n, but had no idea how to use them. Their team built workflows that created results we didn't think were possible without a larger team."</blockquote>
-            <div>
-              <div class="s-testimonial-author">Sales Operations Lead</div>
-              <div class="s-testimonial-role">B2B SaaS, Australia</div>
-            </div>
-          </div>
-
-          <div class="s-testimonial">
-            <div class="s-testimonial-stars">★★★★★</div>
-            <blockquote>"Intelligent Resourcing nailed finding our ICP and delivered a clean list of decision-makers. What would have taken ages to do manually was ready in minutes, and the campaign structure just worked."</blockquote>
-            <div>
-              <div class="s-testimonial-author">Founder</div>
-              <div class="s-testimonial-role">B2B Services, Melbourne</div>
-            </div>
-          </div>
-
-          <div class="s-testimonial">
-            <div class="s-testimonial-stars">★★★★★</div>
-            <blockquote>"Our offshore hire picked things up quickly and fits right into how we work. We've saved around 70% compared to hiring locally, and the quality has been outstanding."</blockquote>
-            <div>
-              <div class="s-testimonial-author">Operations Manager</div>
-              <div class="s-testimonial-role">Growth Stage Company</div>
-            </div>
-          </div>
-        </div>
+        <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0hnFcYc_vd0TqgbySr_YLESiC4P3gce9aAW1taEvTavCYE1gwFnOciBgHvNqvlYiiI8qzEFWXO" target="_blank" class="btn-primary">Book a free strategy call</a>
       </div>
     </div>
 
     <!-- Footer -->
-    <footer class="s-footer">
+    <footer class="site-footer">
       <div>
-        <div class="s-footer-brand">Intelligent Resourcing</div>
-        <div class="s-footer-tagline">Relevance scales better than volume.</div>
+        <div class="footer-brand">Intelligent Resourcing</div>
+        <div class="footer-tagline">signal-led growth</div>
       </div>
-      <div class="s-footer-links">
+      <div class="footer-links">
         <a href="https://intelligentresourcing.co" target="_blank">Website</a>
         <a href="https://intelligentresourcing.co/contact" target="_blank">Contact</a>
         <a href="https://intelligentresourcing.co/terms-privacy/privacy-policy" target="_blank">Privacy</a>
@@ -906,69 +1120,41 @@
 
 
   <!-- ════════════════════════════════════════════════════════════════
-       ALREADY CLAIMED PAGE
+       CLAIMED PAGE
   ════════════════════════════════════════════════════════════════ -->
   <div id="claimed-page" style="display:none;">
 
-    <nav class="nav-bar">
-      <span class="nav-brand">Intelligent Resourcing</span>
-      <a href="https://intelligentresourcing.co" class="nav-tag" target="_blank" style="text-decoration:none;">Visit our site</a>
+    <nav class="nav">
+      <a href="https://intelligentresourcing.co" class="nav-brand" target="_blank">
+        <span class="nav-brand-dot"></span>
+        Intelligent Resourcing
+      </a>
+      <a href="https://intelligentresourcing.co" class="nav-link" target="_blank">Visit our site</a>
     </nav>
 
-    <div class="s-hero grid-bg" style="min-height: 60vh; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-      <div class="s-badge">Already claimed</div>
-      <h1 class="s-headline" style="margin-bottom:20px;">You've already<br>got your report.</h1>
-      <p class="s-sub" style="margin-bottom:40px;">
-        Check your inbox for the CSV we sent. Each email address gets one free report so we can keep the quality high for everyone.
-      </p>
-      <div class="cta-buttons" style="justify-content:center;">
-        <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0hnFcYc_vd0TqgbySr_YLESiC4P3gce9aAW1taEvTavCYE1gwFnOciBgHvNqvlYiiI8qzEFWXO" target="_blank" class="btn-cta">Book a free strategy call instead</a>
-      </div>
-      <p style="margin-top:20px; font-size:13px; color:#aaa;">
-        Need a second report? Email us at <strong>hello@intelligentresources.app</strong>
-      </p>
-    </div>
-
-    <!-- Testimonials + footer reused from success page -->
-    <div class="s-testimonials-wrap grid-bg">
-      <div class="s-testimonials-inner">
-        <p class="s-section-kicker">What our clients say</p>
-        <h2 class="s-section-title">Real results,<br>real teams.</h2>
-        <div class="s-testimonials-grid">
-          <div class="s-testimonial">
-            <div class="s-testimonial-stars">★★★★★</div>
-            <blockquote>"We'd heard of tools like Clay and n8n, but had no idea how to use them. Their team built workflows that created results we didn't think were possible without a larger team."</blockquote>
-            <div>
-              <div class="s-testimonial-author">Sales Operations Lead</div>
-              <div class="s-testimonial-role">B2B SaaS, Australia</div>
-            </div>
-          </div>
-          <div class="s-testimonial">
-            <div class="s-testimonial-stars">★★★★★</div>
-            <blockquote>"Intelligent Resourcing nailed finding our ICP and delivered a clean list of decision-makers. What would have taken ages to do manually was ready in minutes, and the campaign structure just worked."</blockquote>
-            <div>
-              <div class="s-testimonial-author">Founder</div>
-              <div class="s-testimonial-role">B2B Services, Melbourne</div>
-            </div>
-          </div>
-          <div class="s-testimonial">
-            <div class="s-testimonial-stars">★★★★★</div>
-            <blockquote>"Our offshore hire picked things up quickly and fits right into how we work. We've saved around 70% compared to hiring locally, and the quality has been outstanding."</blockquote>
-            <div>
-              <div class="s-testimonial-author">Operations Manager</div>
-              <div class="s-testimonial-role">Growth Stage Company</div>
-            </div>
-          </div>
+    <div class="claimed-hero crosshatch">
+      <div class="claimed-inner">
+        <div class="pill" style="justify-content:center;">
+          <span class="pill-dot"></span>
+          Already claimed
         </div>
+        <h1 class="claimed-heading">
+          You've already<br>got your <em>report.</em>
+        </h1>
+        <p class="claimed-sub">
+          Check your inbox for the CSV we sent. Each email address gets one free report so we can keep the quality high for everyone.
+        </p>
+        <a href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0hnFcYc_vd0TqgbySr_YLESiC4P3gce9aAW1taEvTavCYE1gwFnOciBgHvNqvlYiiI8qzEFWXO" target="_blank" class="btn-primary">Book a free strategy call instead</a>
+        <p class="claimed-note">Need a second report? Email us at hello@intelligentresources.app</p>
       </div>
     </div>
 
-    <footer class="s-footer">
+    <footer class="site-footer">
       <div>
-        <div class="s-footer-brand">Intelligent Resourcing</div>
-        <div class="s-footer-tagline">Relevance scales better than volume.</div>
+        <div class="footer-brand">Intelligent Resourcing</div>
+        <div class="footer-tagline">signal-led growth</div>
       </div>
-      <div class="s-footer-links">
+      <div class="footer-links">
         <a href="https://intelligentresourcing.co" target="_blank">Website</a>
         <a href="https://intelligentresourcing.co/contact" target="_blank">Contact</a>
         <a href="https://intelligentresourcing.co/terms-privacy/privacy-policy" target="_blank">Privacy</a>
@@ -1011,8 +1197,6 @@
     if (LOCAL) {
       document.getElementById("email-field").style.display = "none";
       document.getElementById("privacy-note").style.display = "none";
-      document.getElementById("step4-title").textContent = "CSV downloads instantly";
-      document.getElementById("step4-desc").textContent  = "No email needed in local mode. The CSV downloads straight to your browser.";
     }
 
     form.addEventListener("submit", async (e) => {
@@ -1040,7 +1224,6 @@
           body: JSON.stringify({ urls: urlList, email }),
         });
         if (!res.ok) throw new Error(`Server responded with ${res.status}`);
-        // Mark as submitted in browser so they see the claimed page if they return
         localStorage.setItem(LS_KEY, "1");
         showPage("success");
       } catch (err) {
@@ -1059,7 +1242,6 @@
         if (!startRes.ok) throw new Error(`/scrape responded with ${startRes.status}`);
         const data = await startRes.json();
 
-        // Server-side dedup response
         if (data.status === "already_submitted") {
           showPage("claimed");
           return;
@@ -1083,11 +1265,9 @@
             a.href = URL.createObjectURL(blob);
             a.download = "faq-report.csv";
             a.click();
-            document.getElementById("success-headline").innerHTML = `Done.<br>${result.count} FAQ${result.count !== 1 ? "s" : ""} found.`;
-            document.getElementById("success-sub").textContent = "Your CSV just downloaded. Check your downloads folder.";
+            document.getElementById("success-sub").textContent = `Done. ${result.count} FAQ${result.count !== 1 ? "s" : ""} found. Your CSV just downloaded.`;
           } else {
-            document.getElementById("success-headline").textContent = "Nothing found.";
-            document.getElementById("success-sub").textContent = result.message || "Try submitting the direct FAQ or help page URL.";
+            document.getElementById("success-sub").textContent = result.message || "Nothing found. Try submitting the direct FAQ or help page URL.";
           }
           break;
         }
@@ -1104,14 +1284,11 @@
       successPage.style.display = "none";
       claimedPage.style.display = "none";
       if (page === "success") {
-        document.body.className   = "page-success";
         successPage.style.display = "block";
       } else if (page === "claimed") {
-        document.body.className   = "page-success";
         claimedPage.style.display = "block";
       } else {
-        document.body.className  = "page-form grid-bg";
-        formPage.style.display   = "block";
+        formPage.style.display = "block";
       }
       window.scrollTo(0, 0);
     }
