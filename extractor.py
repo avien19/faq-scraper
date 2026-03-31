@@ -29,28 +29,19 @@ Page content:
 ---"""
 
 
-ANALYSIS_PROMPT = """You are a content strategist analysing FAQ data scraped from competitor websites.
+ANALYSIS_PROMPT = """You are a content strategist analysing FAQ data scraped from a competitor website.
 
-Given the list of competitor Q&A pairs below, return a JSON object with these exact keys:
+Given the Q&A pairs below (all from one company), return a JSON object with these exact keys:
 
 {{
-  "content_opportunities": [
-    {{"question": "...", "why": "one sentence on why this is worth creating content for"}}
-  ],
-  "competitor_themes": [
-    {{"theme": "...", "insight": "one sentence on what this reveals about their positioning"}}
-  ],
   "top_questions": ["...", "...", "..."],
   "strategic_insight": "..."
 }}
 
 Rules:
-- content_opportunities: up to 5 questions that have high search or AI answer engine intent — questions real buyers would ask an AI tool or Google
-- competitor_themes: up to 4 recurring topic clusters across all the FAQs — name the theme and explain what it signals
-- top_questions: exactly 3 questions that buyers are most commonly asking competitors — the highest-signal questions in the dataset
-- strategic_insight: one sharp observation about what these FAQs reveal about how competitors are positioning themselves
-- Be specific and direct. No generic observations. No marketing language.
-- If page last-modified dates are available and most are older than 2 years, note this as a staleness risk in strategic_insight (e.g. "Note: most pages appear to be from 2021 — this content may not reflect current positioning.").
+- top_questions: exactly 3 questions buyers are most commonly asking this competitor - highest-signal questions in the dataset
+- strategic_insight: 1-2 sentences max on how this competitor is positioning themselves based on their FAQ content. Be specific. No generic observations. No marketing language. No em-dashes.
+- If page last-modified dates are available and most are older than 2 years, flag it briefly in strategic_insight.
 - Return ONLY valid JSON. No markdown, no explanation, no code fences.
 
 FAQ data:
@@ -59,105 +50,165 @@ FAQ data:
 ---"""
 
 
+COMBINED_ANALYSIS_PROMPT = """You are a content strategist analysing FAQ data scraped from multiple competitor websites.
+
+Given the Q&A pairs below (labelled by company), return a JSON object with these exact keys:
+
+{{
+  "content_opportunities": [
+    {{"question": "...", "why": "one sentence on why this is worth creating content for"}}
+  ],
+  "competitor_themes": [
+    {{"theme": "...", "insight": "one sentence on what this reveals about their positioning"}}
+  ]
+}}
+
+Rules:
+- content_opportunities: up to 5 questions with high search or AI answer engine intent that real buyers would ask - synthesised across all competitors
+- competitor_themes: up to 4 recurring topic clusters across all the FAQs - name the theme and explain what it signals. Where relevant, note which company drives the theme.
+- Be specific and direct. No generic observations. No marketing language. No em-dashes.
+- Return ONLY valid JSON. No markdown, no explanation, no code fences.
+
+FAQ data:
+---
+{faq_text}
+---"""
+
+
+def _call_llm(prompt: str, provider: str, model: str) -> str:
+    if provider == "openrouter":
+        return _call_openrouter(prompt, model)
+    elif provider == "anthropic":
+        return _call_anthropic(prompt, model)
+    elif provider == "openai":
+        return _call_openai(prompt, model)
+    elif provider == "gemini":
+        return _call_gemini(prompt, model)
+    raise ValueError(f"Unknown provider: {provider}")
+
+
+def _parse_json(raw: str) -> dict:
+    raw = re.sub(r"```json\s*", "", raw)
+    raw = re.sub(r"```\s*", "", raw).strip()
+    return json.loads(raw)
+
+
 def analyze_faqs(rows: list, provider: str, model: str) -> dict:
     """Analyse extracted FAQ rows and return structured key findings.
 
-    rows: list of [competitor, url, question, answer, date]
-    Returns a dict with content_opportunities, competitor_themes, top_questions, strategic_insight.
+    rows: list of [competitor, url, question, answer, date, ...]
+    Returns:
+      {
+        "by_company": { company: {"strategic_insight": str, "top_questions": [...]} },
+        "combined":   {"content_opportunities": [...], "competitor_themes": [...]}
+      }
     """
     if not rows:
         return {}
 
-    lines = []
+    # Group rows by company
+    by_company: dict[str, list] = {}
+    for r in rows:
+        by_company.setdefault(r[0], []).append(r)
+
+    result: dict = {"by_company": {}, "combined": {}}
+
+    # Per-company: insight + top questions only
+    for company, company_rows in by_company.items():
+        lines = []
+        for r in company_rows:
+            lm = f" [content date: {r[5]}]" if len(r) > 5 and r[5] else ""
+            lines.append(f"Q:{lm} {r[2]}\nA: {r[3]}")
+        try:
+            raw = _call_llm(ANALYSIS_PROMPT.format(faq_text="\n\n".join(lines)), provider, model)
+            result["by_company"][company] = _parse_json(raw)
+        except Exception as e:
+            print(f"  [WARN] Analysis failed for {company}: {e}")
+
+    # Combined: content opportunities + themes across all companies
+    all_lines = []
     for r in rows:
         lm = f" [content date: {r[5]}]" if len(r) > 5 and r[5] else ""
-        lines.append(f"[{r[0]}]{lm} Q: {r[2]}\n       A: {r[3]}")
-    faq_text = "\n\n".join(lines)
-
-    prompt = ANALYSIS_PROMPT.format(faq_text=faq_text)
-
+        all_lines.append(f"[{r[0]}]{lm} Q: {r[2]}\nA: {r[3]}")
     try:
-        if provider == "openrouter":
-            raw = _call_openrouter(prompt, model)
-        elif provider == "anthropic":
-            raw = _call_anthropic(prompt, model)
-        elif provider == "openai":
-            raw = _call_openai(prompt, model)
-        elif provider == "gemini":
-            raw = _call_gemini(prompt, model)
-        else:
-            return {}
-
-        raw = re.sub(r"```json\s*", "", raw)
-        raw = re.sub(r"```\s*", "", raw).strip()
-        return json.loads(raw)
+        raw = _call_llm(COMBINED_ANALYSIS_PROMPT.format(faq_text="\n\n".join(all_lines)), provider, model)
+        result["combined"] = _parse_json(raw)
     except Exception as e:
-        print(f"  [WARN] Analysis failed: {e}")
-        return {}
+        print(f"  [WARN] Combined analysis failed: {e}")
+
+    return result
+
+
+def _clean(text: str) -> str:
+    """Strip em-dashes and en-dashes from LLM output."""
+    return text.replace("\u2014", " - ").replace("\u2013", " - ")
+
+
+def _render_company_section(company: str, findings: dict) -> str:
+    si = _clean(findings.get("strategic_insight", ""))
+    tq = findings.get("top_questions", [])
+
+    items = "".join(
+        f'<li style="padding:6px 0;border-bottom:1px solid #E5E1E4;color:#47404E;font-size:14px;line-height:1.5;">{_clean(q)}</li>'
+        for q in tq
+    )
+    questions_block = f'<ul style="list-style:none;margin:8px 0 0;padding:0;border-top:1px solid #E5E1E4;">{items}</ul>' if items else ""
+
+    return f"""
+  <div style="border-top:1px solid #E5E1E4;padding-top:20px;margin-bottom:24px;">
+    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#8A8494;text-transform:uppercase;margin:0 0 8px;">{company}</p>
+    {f'<p style="font-size:14px;color:#14141C;line-height:1.6;margin:0 0 10px;border-left:3px solid #6B49B2;padding-left:12px;">{si}</p>' if si else ""}
+    {f'<p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0;">Top questions buyers are asking</p>{questions_block}' if questions_block else ""}
+  </div>
+"""
 
 
 def findings_to_html(findings: dict) -> str:
-    """Convert analysis findings dict to an inline HTML email block."""
+    """Convert analysis findings to an inline HTML email block."""
     if not findings:
         return ""
+
+    by_company = findings.get("by_company", {})
+    combined = findings.get("combined", {})
 
     parts = []
     parts.append("""
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:600px;margin:0 auto;padding:32px 24px;">
-  <div style="border-top:3px solid #F16324;padding-top:24px;margin-bottom:32px;">
+  <div style="border-top:3px solid #F16324;padding-top:24px;margin-bottom:28px;">
     <p style="font-family:monospace;font-size:11px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 8px;">Key Findings</p>
     <h2 style="font-size:22px;font-weight:700;color:#14141C;margin:0;">What your competitors' FAQs are telling you</h2>
   </div>
 """)
 
-    # Strategic insight
-    si = findings.get("strategic_insight", "")
-    if si:
-        parts.append(f"""
-  <div style="background:#FBF8F8;border-left:3px solid #6B49B2;padding:16px 20px;border-radius:0 6px 6px 0;margin-bottom:32px;">
-    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#6B49B2;text-transform:uppercase;margin:0 0 6px;">Strategic Observation</p>
-    <p style="font-size:15px;color:#14141C;line-height:1.6;margin:0;">{si}</p>
-  </div>
-""")
+    for company, company_findings in by_company.items():
+        parts.append(_render_company_section(company, company_findings))
 
-    # Top questions
-    tq = findings.get("top_questions", [])
-    if tq:
-        items = "".join(f'<li style="padding:8px 0;border-bottom:1px solid #E5E1E4;color:#47404E;font-size:14px;line-height:1.5;">{q}</li>' for q in tq)
-        parts.append(f"""
-  <div style="margin-bottom:32px;">
-    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 12px;">Top 3 Questions Buyers Are Asking Competitors</p>
-    <ul style="list-style:none;margin:0;padding:0;border-top:1px solid #E5E1E4;">{items}</ul>
-  </div>
-""")
-
-    # Content opportunities
-    co = findings.get("content_opportunities", [])
+    # Combined content opportunities
+    co = combined.get("content_opportunities", [])
     if co:
-        cards = ""
-        for item in co:
-            cards += f"""
-    <div style="border:1px solid #E5E1E4;border-radius:6px;padding:16px;margin-bottom:10px;">
-      <p style="font-size:14px;font-weight:600;color:#14141C;margin:0 0 4px;">{item.get('question','')}</p>
-      <p style="font-size:13px;color:#8A8494;margin:0;">{item.get('why','')}</p>
-    </div>"""
+        cards = "".join(f"""
+    <div style="border:1px solid #E5E1E4;border-radius:6px;padding:14px 16px;margin-bottom:8px;">
+      <p style="font-size:14px;font-weight:600;color:#14141C;margin:0 0 3px;">{_clean(item.get('question',''))}</p>
+      <p style="font-size:13px;color:#8A8494;margin:0;">{_clean(item.get('why',''))}</p>
+    </div>""" for item in co)
         parts.append(f"""
-  <div style="margin-bottom:32px;">
+  <div style="margin-bottom:28px;">
     <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 12px;">Content Opportunities</p>
     {cards}
   </div>
 """)
 
-    # Competitor themes
-    ct = findings.get("competitor_themes", [])
+    # Combined competitor themes
+    ct = combined.get("competitor_themes", [])
     if ct:
         rows_html = "".join(
-            f'<tr><td style="padding:10px 12px;font-size:14px;font-weight:600;color:#14141C;border-bottom:1px solid #E5E1E4;vertical-align:top;width:35%;">{item.get("theme","")}</td><td style="padding:10px 12px;font-size:13px;color:#47404E;border-bottom:1px solid #E5E1E4;line-height:1.5;">{item.get("insight","")}</td></tr>'
+            f'<tr><td style="padding:10px 12px;font-size:14px;font-weight:600;color:#14141C;border-bottom:1px solid #E5E1E4;vertical-align:top;width:35%;">{_clean(item.get("theme",""))}</td>'
+            f'<td style="padding:10px 12px;font-size:13px;color:#47404E;border-bottom:1px solid #E5E1E4;line-height:1.5;">{_clean(item.get("insight",""))}</td></tr>'
             for item in ct
         )
         parts.append(f"""
-  <div style="margin-bottom:32px;">
-    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 12px;">Competitor Themes</p>
+  <div style="margin-bottom:28px;">
+    <p style="font-family:monospace;font-size:10px;letter-spacing:0.08em;color:#F16324;text-transform:uppercase;margin:0 0 12px;">Themes Across Competitors</p>
     <table style="width:100%;border-collapse:collapse;border:1px solid #E5E1E4;border-radius:6px;overflow:hidden;">
       <thead><tr style="background:#14141C;"><th style="padding:10px 12px;font-family:monospace;font-size:11px;color:#fff;text-align:left;font-weight:500;">Theme</th><th style="padding:10px 12px;font-family:monospace;font-size:11px;color:#fff;text-align:left;font-weight:500;">What it signals</th></tr></thead>
       <tbody>{rows_html}</tbody>
