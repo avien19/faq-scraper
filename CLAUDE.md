@@ -55,12 +55,12 @@ Two separate pipelines:
 6. **Still Processing?** — IF `status == "processing"` → loops back to Wait 10s; otherwise continues
 7. **FAQs Found?** — IF `found == true` → Decode CSV branch; else → Send No-Data Email
 8. **Decode CSV** — Code node: base64-decodes the CSV into a binary attachment
-9. **Send Report** — Gmail node: sends email with CSV attached (credential: `WBg8j6jRwooHB9oX`)
+9. **Send Report** — Gmail node: sends email with CSV attached + `analysis_html` as the email body (credential: `WBg8j6jRwooHB9oX`)
    OR **Send No-Data Email** — Gmail node: sends "no FAQ content found" message
 
 **Coolify server** (`aos4gsswcog44sc04okwc000.intelligentresources.app`):
 - `POST /scrape` — validates URLs, creates a job_id, starts background thread, returns `{ job_id, status: "processing" }` immediately
-- `GET /result/{job_id}` — returns `{ status: "processing" }` while running, or `{ status: "done", found, count, csv, pages_checked }` when complete
+- `GET /result/{job_id}` — returns `{ status: "processing" }` while running, or `{ status: "done", found, count, csv, analysis_html, pages_checked }` when complete
 - Background worker (`_run_scrape`):
   1. **URL discovery** (`discover_faq_urls`): Firecrawl map + sitemap (always both, merged) → MadCap Flare TOC fallback → common path probing
   2. **Categorise** each discovered URL: `faq` | `help` | `home` | `article_index` | `article_post` | `other`
@@ -68,6 +68,7 @@ Two separate pipelines:
   4. **Fetch** each page using two sources; uses the longest: static HTTP HTML (BS4-parsed) vs Firecrawl rawHtml (BS4-parsed). Max 60,000 chars.
   5. **Extract** FAQs via LLM (OpenRouter + Claude Haiku 4.5). FAQ pages → extract all Q&As. Blog posts & service pages → extract only explicit Q&A pairs; skip if none found.
   6. **Deduplicate** by question text, build CSV, base64-encode it
+  7. **Analyse** (`analyze_faqs`): per-company LLM call (strategic insight + top 3 questions) + one combined LLM call (content opportunities + themes across all companies). Rendered to inline HTML (`findings_to_html`) for the email body.
 
 ---
 
@@ -101,12 +102,14 @@ Firecrawl Markdown is intentionally not used — it's a stripped-down version of
 
 **LLM extraction** (`extractor.py`): Sends clean text to LLM, which returns `[{question, answer}]` JSON. Deduplication by exact question text within a job run.
 
+**Key findings analysis** (`analyze_faqs` in `extractor.py`): After all FAQs are collected, the scraper runs N+1 LLM calls - one per company for a compact insight (strategic observation + top 3 buyer questions) and one combined call across all companies for content opportunities and cross-competitor themes. This keeps the email short regardless of how many companies are submitted. `findings_to_html` renders the output as inline-styled HTML for Gmail (no external CSS). Em-dashes and en-dashes are stripped from all LLM output.
+
 ---
 
 ### Files
 
 - **`api.py`** — FastAPI lead magnet server. Async job pattern, Firecrawl + sitemap discovery, MadCap Flare TOC parsing, two-source page fetching, LLM extraction.
-- **`extractor.py`** — LLM extraction logic. Supports anthropic, openai, gemini, openrouter providers.
+- **`extractor.py`** — LLM extraction logic + key findings analysis (per-company insight/questions + combined opportunities/themes). Supports anthropic, openai, gemini, openrouter providers.
 - **`scraper.py`** — Internal pipeline orchestration. Reads config, fetches pages, deduplicates, writes to Sheets.
 - **`sheets.py`** — Google Sheets I/O via gspread. OAuth auth. `get_competitor_urls()` reads the source sheet.
 - **`config.json`** — LLM provider/model, sheet names, domain-level overrides.

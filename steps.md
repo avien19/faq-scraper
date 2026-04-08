@@ -192,18 +192,50 @@ Within a single job, exact duplicate questions (same text) are dropped. This pre
 
 ---
 
-### Step 9 — Build the CSV and return
+### Step 9 — Build the CSV
 
 All collected rows are written into a CSV with columns:
-`Competitor | Source URL | Question | Answer | Date`
+`Competitor | Source URL | Question | Answer | Date | Content Date`
 
-The CSV is **base64-encoded** and returned in the job result:
+The CSV is **base64-encoded**.
+
+---
+
+### Step 10 — Key findings analysis
+
+After the CSV is built, the scraper runs **N+1 LLM calls** (where N = number of companies):
+
+**Per-company call** (one per company):
+- Input: that company's FAQ rows only
+- Output: `strategic_insight` (1-2 sentences on how they position themselves) + `top_questions` (3 highest-signal buyer questions)
+- Purpose: compact, company-specific insight that scales to any number of competitors
+
+**Combined call** (one across all companies):
+- Input: all FAQ rows labelled by company
+- Output: `content_opportunities` (up to 5 high-intent questions worth creating content for) + `competitor_themes` (up to 4 recurring topic clusters with company attribution)
+- Purpose: cross-competitor synthesis that only makes sense with all the data together
+
+The LLM prompts enforce: no em-dashes, no marketing language, no generic observations.
+
+`findings_to_html()` renders the results as inline-styled HTML for Gmail (no external CSS). Structure:
+1. Header: "Key Findings - What your competitors' FAQs are telling you"
+2. Per-company sections: company name + strategic insight (purple left-border) + top 3 questions
+3. Content Opportunities (combined): question cards with "why" explanations
+4. Themes Across Competitors (combined): table with theme + what it signals
+5. Footer: "Your full FAQ CSV is attached."
+
+---
+
+### Step 11 — Return the result
+
+The job result includes both the CSV and the analysis HTML:
 ```json
 {
   "status": "done",
   "found": true,
   "count": 42,
   "csv": "<base64 string>",
+  "analysis_html": "<inline HTML email block>",
   "pages_checked": ["https://...", "https://..."]
 }
 ```
@@ -219,11 +251,11 @@ If zero FAQs were found across all pages:
 
 ---
 
-### Step 10 — n8n decodes and emails
+### Step 12 — n8n decodes and emails
 
 Back in n8n:
 - **Decode CSV** node: base64-decodes the CSV string into a binary file attachment
-- **Send Report** node: sends a Gmail with the CSV attached to the user's email
+- **Send Report** node: sends a Gmail with `analysis_html` as the email body and the CSV attached
 - **Send No-Data Email** node: sends a Gmail explaining no FAQ content was found and suggests trying a direct FAQ/help URL
 
 ---
