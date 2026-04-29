@@ -134,9 +134,33 @@ def _record_email(email: str) -> None:
         json.dump(list(emails), f)
 
 
+_ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/admin/emails")
+def list_emails(token: str = ""):
+    if not _ADMIN_TOKEN or token != _ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return {"emails": sorted(_load_emails())}
+
+
+@app.delete("/admin/emails/{email}")
+def delete_email(email: str, token: str = ""):
+    if not _ADMIN_TOKEN or token != _ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    emails = _load_emails()
+    normalized = email.lower().strip()
+    if normalized not in emails:
+        return {"removed": None, "reason": "not_found"}
+    emails.remove(normalized)
+    with open(_EMAILS_FILE, "w") as f:
+        json.dump(list(emails), f)
+    return {"removed": normalized}
 
 
 # ---------------------------------------------------------------------------
